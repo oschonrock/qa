@@ -21,7 +21,7 @@
 # SOFTWARE.
 
 cmake_minimum_required(VERSION 3.16)
-project(stamp)
+project(qa)
 
 # set path to custom cmake modules
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake-scripts/cmake")
@@ -33,12 +33,11 @@ include(scripts)
 conan_init(cmake)
 
 set(CMAKE_CXX_STANDARD 17)
-add_compile_options(-g -O3 -Wall -Wextra)
+add_compile_options(-O2 -Wall -Wextra -Wno-reorder)
 
-# this is not nice, but needed to add gv to includes in compiler_database for .hpp files which drives clangd highlighting
-# include_directories(include include/toolbelt include/ryu /usr/include/graphviz)
+include_directories(include)
+add_executable(qa apps/qa.cpp)
 
-# find_package(libmongocxx REQUIRED)
-# add_executable(translupe apps/translupe.cpp)
-# target_link_libraries(translupe PUBLIC ${LIBMONGOCXX_LIBRARIES} cgraph gvc)
-# target_include_directories(translupe PUBLIC ${LIBMONGOCXX_INCLUDE_DIRS} /usr/include/graphviz)
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package(Threads REQUIRED)
+target_link_libraries(qa PUBLIC Threads::Threads)
