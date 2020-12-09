@@ -35,9 +35,12 @@ conan_init(cmake)
 set(CMAKE_CXX_STANDARD 17)
 add_compile_options(-O2 -Wall -Wextra -Wno-reorder)
 
-include_directories(include)
+add_subdirectory(csv-parser)
+
+include_directories(include csv-parser/include)
 add_executable(qa apps/qa.cpp)
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
-target_link_libraries(qa PUBLIC Threads::Threads)
+target_link_libraries(qa PRIVATE Threads::Threads)
+target_link_libraries(qa PRIVATE csv)
