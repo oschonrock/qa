@@ -4,6 +4,7 @@
 #include "strutil.h"
 #include <algorithm>
 #include <chrono>
+#include <filesystem>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -76,7 +77,10 @@ public:
     return _score < other._score || (_score == other._score && _time > other._time);
   }
   bool operator>(const leader& other) const { return other < *this; }
-  bool operator==(const leader& other) const { return _score == other._score && std::fabs(_time - other._time) < 0.01; }
+  bool operator==(const leader& other) const {
+    const double epsilon = 0.01;
+    return _score == other._score && std::fabs(_time - other._time) < epsilon;
+  }
   bool operator!=(const leader& other) const { return !(*this == other); }
   bool operator<=(const leader& other) const { return !(*this > other); }
   bool operator>=(const leader& other) const { return !(*this < other); }
@@ -94,8 +98,9 @@ public:
 class qa_set {
 public:
   bool open(const std::string& filename) {
-    _filename    = filename;
-    _lb_filename = ".lb_" + _filename;
+    _filename = filename;
+    std::filesystem::path path(_filename);
+    _lb_filename = (path.parent_path() / (".lb_" + path.filename().string())).string();
     _file.open(_filename);
     return _file.is_open();
   }
@@ -126,7 +131,8 @@ private:
     shuffle(qas);
     int         correct_count = 0;
     std::size_t total         = qas.size();
-    std::cout << "Answer these " << total << " questions. Answer '?' to temporarily skip a question\n\n";
+    std::cout << "Answer these " << total
+              << " questions. Answer '?' to temporarily skip a question\n\n";
     std::vector<qa> wrong_qas;
     std::vector<qa> skipped_qas;
     auto            start = std::chrono::system_clock::now();
@@ -154,7 +160,8 @@ private:
     std::cout << "You got " << correct_count << " out of " << total << " correct.\n\n";
 
     if (total == _qas.size()) { // this is the first run through. Leaderboard?
-      long duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count();
+      long duration_ms =
+          std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count();
       load_lb();
       leader new_ld = {"", correct_count, duration_ms / 1000.0};
       add_to_lb(new_ld);
@@ -208,10 +215,10 @@ private:
     if (!_lb.empty()) {
       std::cout << "\n\nLeaderboard\n\n";
       printf("%4s   %-20s   %5s   %7s\n", "Rank", "Name", "Score", "Time");
-      std::cout << std::string(4, '-') << "   " << std::string(20, '-') << "   " << std::string(5, '-') << "   "
-                << std::string(7, '-') << '\n';
+      std::cout << std::string(4, '-') << "   " << std::string(20, '-') << "   "
+                << std::string(5, '-') << "   " << std::string(7, '-') << '\n';
       int counter = 0;
-      for (auto ld: _lb) {
+      for (const auto& ld: _lb) {
         counter++;
         printf("%4d   %-20s   %5d   %02d:%04.1f\n", counter, ld._name.c_str(), ld._score,
                static_cast<int>(ld._time / 60),
