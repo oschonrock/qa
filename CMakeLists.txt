@@ -39,6 +39,7 @@ add_subdirectory(csv-parser)
 
 include_directories(include csv-parser/include)
 add_executable(qa apps/qa.cpp)
+add_executable(pi apps/pi.cpp)
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
