@@ -3,7 +3,7 @@
 	url = https://github.com/oschonrock/toolbelt
 [submodule "cmake-scripts"]
 	path = cmake-scripts
-	url = https://github.com/oschonrock/cmake-scripts
+	url = https://github.com/oschonrock/cmake-scripts.git
 [submodule "benchmark"]
 	path = benchmark
 	url = https://github.com/google/benchmark.git
