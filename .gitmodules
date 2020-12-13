@@ -13,3 +13,6 @@
 [submodule "include/ryu"]
 	path = include/ryu
 	url = https://github.com/ulfjack/ryu
+[submodule "csv-parser"]
+	path = csv-parser
+	url = https://github.com/oschonrock/csv-parser.git
