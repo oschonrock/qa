@@ -6,7 +6,7 @@
 template <typename T, std::enable_if_t<std::is_floating_point_v<T>, bool> = true>
 constexpr T arctan_taylor(T tan) {
   if (std::fabs(tan) > 1)
-    return (tan < 0.0 ? -M_PI_2f64 : M_PI_2f64) - arctan_taylor(1 / tan);
+    return std::copysign(T(M_PI_2l), tan) - arctan_taylor(1 / tan);
   T num  = tan;
   T den  = 1;
   T sign = 1;
@@ -25,7 +25,7 @@ constexpr T arctan_taylor(T tan) {
 template <typename T, std::enable_if_t<std::is_floating_point_v<T>, bool> = true>
 constexpr T arctan(T tan) {
   if (std::fabs(tan) > 1)
-    return (tan < 0.0 ? -1 : 1) * M_PI_2f64 - arctan(1 / tan);
+    return std::copysign(T(M_PI_2l), tan) - arctan(1 / tan);
   T sum  = 0;
   T prod = 1;
   for (int n = 0; sum + std::fabs(prod) != sum; ++n){ 
@@ -51,15 +51,15 @@ int main() {
   auto pi_float       = pi<float>();
   auto pi_double      = pi<double>();
   auto pi_long_double = pi<long double>();
-  
-  std::cout << std::setprecision(std::numeric_limits<decltype(pi_float)>::digits10)
-            << pi_float << '\n'
-            << std::setprecision(std::numeric_limits<decltype(pi_double)>::digits10)
-            << pi_double << '\n'
+
+  std::cout << std::setprecision(std::numeric_limits<decltype(pi_float)>::digits10) << pi_float
+            << '\n'
+            << std::setprecision(std::numeric_limits<decltype(pi_double)>::digits10) << pi_double
+            << '\n'
             << std::setprecision(std::numeric_limits<decltype(pi_long_double)>::digits10)
             << pi_long_double << '\n'
-            << M_PI << '\n';
+            << M_PIl << '\n';
 
-  std::cout << arctan(-65) << '\n';
+  std::cout << 1/ (arctan(-std::sqrt(3.0L)) / M_PIl);
   return EXIT_SUCCESS;
 }

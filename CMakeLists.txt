@@ -33,11 +33,11 @@ include(scripts)
 conan_init(cmake)
 
 set(CMAKE_CXX_STANDARD 17)
-add_compile_options(-O2 -Wall -Wextra -Wno-reorder)
+add_compile_options(-Wall -Wextra -Wno-reorder)
 
 add_subdirectory(csv-parser)
 
-include_directories(include csv-parser/include)
+include_directories(include include/toolbelt csv-parser/include)
 add_executable(qa apps/qa.cpp)
 add_executable(pi apps/pi.cpp)
 

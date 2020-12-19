@@ -3,6 +3,7 @@
 #include "csv.hpp"
 #include "strutil.h"
 #include <algorithm>
+#include <bits/c++config.h>
 #include <chrono>
 #include <filesystem>
 #include <fstream>
@@ -30,12 +31,12 @@ public:
     return !_question.empty() && !_answer.empty();
   }
 
-  qa_resp ask(const std::string& stem) const {
+  [[nodiscard]] qa_resp ask(const std::string& stem) const {
     std::string prompt = stem + " " + _question + "? ";
     std::cout << prompt;
     std::string ans;
     std::getline(std::cin, ans, '\n');
-    int posx = prompt.size() + ans.size() + 3;
+    std::size_t posx = prompt.size() + ans.size() + 3;
     std::cout << "\x1B[1A\x1B[" << posx << "C"; // move cursor to end of answer
     trim(ans);
     if (ans == "?") {
@@ -91,8 +92,8 @@ public:
   }
 
   std::string _name;
-  int         _score;
-  double      _time;
+  int         _score = 0;
+  double      _time  = 0;
 };
 
 class qa_set {
@@ -111,6 +112,9 @@ public:
     return !_qas.empty();
   }
   void run() {
+    load_lb();
+    print_lb();
+    return;
     std::vector<qa> qas = _qas; // make a copy
     while (!(qas = ask_questions(qas)).empty())
       ;
@@ -160,8 +164,7 @@ private:
     std::cout << "You got " << correct_count << " out of " << total << " correct.\n\n";
 
     if (total == _qas.size()) { // this is the first run through. Leaderboard?
-      long duration_ms =
-          std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count();
+      int duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count();
       load_lb();
       leader new_ld = {"", correct_count, duration_ms / 1000.0};
       add_to_lb(new_ld);
@@ -182,7 +185,7 @@ private:
       std::cout << "Please enter your name: ";
       std::getline(std::cin, ld._name, '\n');
       trim(ld._name);
-      _lb.insert(std::upper_bound(_lb.begin(), _lb.end(), ld, std::greater<leader>()), ld);
+      _lb.insert(std::upper_bound(_lb.begin(), _lb.end(), ld, std::greater<>()), ld);
       if (_lb.size() > max_leaders) _lb.erase(_lb.begin() + max_leaders, _lb.end());
       print_lb();
     }
@@ -197,7 +200,7 @@ private:
       _lb.push_back(ld);
     }
     _lb_file.close();
-    std::sort(_lb.begin(), _lb.end(), std::greater<leader>());
+    std::sort(_lb.begin(), _lb.end(), std::greater<>());
   }
 
   void write_lb() {
@@ -214,13 +217,13 @@ private:
   void print_lb() {
     if (!_lb.empty()) {
       std::cout << "\n\nLeaderboard\n\n";
-      printf("%4s   %-20s   %5s   %7s\n", "Rank", "Name", "Score", "Time");
+      printf("%4s   %-20s   %5s   %7s\n", "Rank", "Name", "Score", "Time"); // NOLINT
       std::cout << std::string(4, '-') << "   " << std::string(20, '-') << "   "
                 << std::string(5, '-') << "   " << std::string(7, '-') << '\n';
       int counter = 0;
       for (const auto& ld: _lb) {
         counter++;
-        printf("%4d   %-20s   %5d   %02d:%04.1f\n", counter, ld._name.c_str(), ld._score,
+        printf("%4d   %-20s   %5d   %02d:%04.1f\n", counter, ld._name.c_str(), ld._score, // NOLINT
                static_cast<int>(ld._time / 60),
                static_cast<int>(ld._time) % 60 + ld._time - static_cast<int>(ld._time));
       }
