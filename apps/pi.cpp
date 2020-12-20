@@ -5,8 +5,7 @@
 
 template <typename T, std::enable_if_t<std::is_floating_point_v<T>, bool> = true>
 constexpr T arctan_taylor(T tan) {
-  if (std::fabs(tan) > 1)
-    return std::copysign(T(M_PI_2l), tan) - arctan_taylor(1 / tan);
+  if (std::fabs(tan) > 1) return std::copysign(T(M_PI_2l), tan) - arctan_taylor(1 / tan);
   T num  = tan;
   T den  = 1;
   T sign = 1;
@@ -24,13 +23,12 @@ constexpr T arctan_taylor(T tan) {
 
 template <typename T, std::enable_if_t<std::is_floating_point_v<T>, bool> = true>
 constexpr T arctan(T tan) {
-  if (std::fabs(tan) > 1)
-    return std::copysign(T(M_PI_2l), tan) - arctan(1 / tan);
+  if (std::fabs(tan) > 1) return std::copysign(T(M_PI_2l), tan) - arctan(1 / tan);
   T sum  = 0;
   T prod = 1;
-  for (int n = 0; sum + std::fabs(prod) != sum; ++n){ 
+  for (int n = 0; sum + std::fabs(prod) != sum; ++n) {
     prod = 1;
-    for (int k = 1; k <= n; ++k) 
+    for (int k = 1; k <= n; ++k)
       prod *= 2 * k * tan * tan / ((2 * k + 1) * (1 + tan * tan)); //  Eulers Series
     sum += prod;
   }
@@ -60,6 +58,6 @@ int main() {
             << pi_long_double << '\n'
             << M_PIl << '\n';
 
-  std::cout << 1/ (arctan(-std::sqrt(3.0L)) / M_PIl);
+  std::cout << 1 / (arctan(-std::sqrt(3.0L)) / M_PIl);
   return EXIT_SUCCESS;
 }

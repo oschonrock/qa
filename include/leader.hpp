@@ -1,3 +1,6 @@
+#include "csv.hpp"
+#include <string>
+
 class leader {
 public:
   bool load(csv::CSVRow& row) {

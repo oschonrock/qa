@@ -34,11 +34,8 @@ conan_init(cmake)
 
 set(CMAKE_CXX_STANDARD 17)
 add_compile_options(-Wall -Wextra -Wno-reorder-ctor)
-
 add_subdirectory(csv-parser)
-
 include_directories(include include/toolbelt csv-parser/include)
-
 add_executable(qa apps/qanda.cpp)
 target_sources(qa PRIVATE include/qa_set.cpp include/qa.cpp)
 

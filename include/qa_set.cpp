@@ -4,11 +4,10 @@
 #include <chrono>
 #include <filesystem>
 #include <fstream>
-#include <iomanip>
 #include <iostream>
 #include <string>
-#include <algorithm>
 #include <random>
+
 
 bool qa_set::open(const std::string& filename) {
   _filename = filename;
@@ -17,6 +16,7 @@ bool qa_set::open(const std::string& filename) {
   _file.open(_filename);
   return _file.is_open();
 }
+
 
 bool qa_set::load() {
   _file.seekg(0);
@@ -31,11 +31,13 @@ bool qa_set::load() {
   return !_qas.empty();
 }
 
+
 void qa_set::run() {
   std::vector<qa> qas = _qas; // make a copy
   while (!(qas = ask_questions(qas)).empty())
     ;
 }
+
 
 std::vector<qa> qa_set::ask_questions(std::vector<qa>& qas) {
   std::cout << "\x1B[2J\x1B[H"; // clear screen
@@ -88,6 +90,7 @@ std::vector<qa> qa_set::ask_questions(std::vector<qa>& qas) {
   return wrong_qas;
 }
 
+
 void qa_set::add_to_lb(leader ld) {
   if (_lb.size() < max_leaders || ld > _lb.back()) {
     std::cout << "Congratulations! You have made the Top " << max_leaders << " leaderboard!\n";
@@ -99,6 +102,7 @@ void qa_set::add_to_lb(leader ld) {
     print_lb();
   }
 }
+
 
 void qa_set::load_lb() {
   _lb_file.open(_lb_filename);
@@ -113,6 +117,7 @@ void qa_set::load_lb() {
   std::sort(_lb.begin(), _lb.end(), std::greater<>());
 }
 
+
 void qa_set::write_lb() {
   if (!_lb.empty()) {
     _lb_file.open(_lb_filename, std::ios::out); // overwrite or create
@@ -124,6 +129,7 @@ void qa_set::write_lb() {
     _lb_file.close();
   }
 }
+
 
 void qa_set::print_lb() {
   if (!_lb.empty()) {
