@@ -1,6 +1,6 @@
 #pragma once
 
-#include "qa.h"
+#include "qa.hpp"
 #include "leader.hpp"
 
 class qa_set {
