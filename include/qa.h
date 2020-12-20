@@ -23,7 +23,7 @@ enum class qa_resp { wrong, correct, skip };
 
 class qa {
 public:
-  bool load(csv::CSVRow& row) {
+  bool load(const csv::CSVRow& row) {
     _question = row["question"].get<>();
     _answer   = row["answer"].get<>();
     return !_question.empty();
