@@ -1,4 +1,5 @@
 #include "qa.hpp"
+#include "strutil.h"
 
 bool qa::load(const csv::CSVRow& row) {
   _question = row["question"].get<>();
@@ -35,4 +36,3 @@ bool qa::load(const csv::CSVRow& row) {
   std::cout << "=> Wrong, correct answer is: " << _answer << '\n';
   return qa_resp::wrong;
 }
-

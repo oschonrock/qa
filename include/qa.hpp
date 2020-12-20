@@ -1,7 +1,6 @@
 #pragma once
 
 #include "csv.hpp"
-#include "strutil.h"
 #include <string>
 
 enum class qa_resp { wrong, correct, skip };
