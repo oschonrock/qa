@@ -90,7 +90,7 @@ public:
   bool operator<=(const leader& other) const { return !(*this > other); }
   bool operator>=(const leader& other) const { return !(*this < other); }
 
-  bool write(csv::CSVWriter<std::fstream>& writer) {
+  bool write(csv::CSVWriter<std::fstream>& writer) const {
     writer << std::make_tuple(_name, _score, _time);
     return true;
   }
@@ -113,7 +113,7 @@ public:
   bool load() {
     _file.seekg(0);
     std::getline(_file, _stem); // read 1st line manually
-    _file.seekg(0); // and reset, then skip first line
+    _file.seekg(0);             // and reset, then skip first line
     csv::CSVReader reader(_file, csv::CSVFormat().trim({' ', '\t'}).header_row(1));
     for (csv::CSVRow& row: reader) {
       qa qa;
@@ -200,7 +200,6 @@ private:
     }
   }
 
-  
   void load_lb() {
     _lb_file.open(_lb_filename);
     csv::CSVReader reader(_lb_file, csv::CSVFormat().trim({' ', '\t'}));
@@ -214,20 +213,18 @@ private:
     std::sort(_lb.begin(), _lb.end(), std::greater<>());
   }
 
-  
   void write_lb() {
     if (!_lb.empty()) {
       _lb_file.open(_lb_filename, std::ios::out); // overwrite or create
       auto writer = csv::make_csv_writer(_lb_file);
       writer << std::make_tuple("name", "score", "time");
-      for (auto ld: _lb) {
+      for (const auto& ld: _lb) {
         ld.write(writer);
       }
       _lb_file.close();
     }
   }
 
-  
   void print_lb() {
     if (!_lb.empty()) {
       std::cout << "\n\nLeaderboard\n\n";
