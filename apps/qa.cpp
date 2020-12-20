@@ -1,9 +1,5 @@
-#include "qa.h"
-#include "strutil.h"
-#include <cstdlib>
+#include "qa_set.hpp"
 #include <iostream>
-#include <string>
-#include <vector>
 
 int main(int argc, char** argv) {
   std::ifstream f;

@@ -16,7 +16,7 @@ inline void trim(std::string& s) {
   rtrim(s);
 }
 
-unsigned edit_distance(const std::string& s1, const std::string& s2) {
+inline unsigned edit_distance(const std::string& s1, const std::string& s2) {
   const std::size_t                      len1 = s1.size();
   const std::size_t                      len2 = s2.size();
   std::vector<std::vector<unsigned>> d(len1 + 1, std::vector<unsigned>(len2 + 1));
