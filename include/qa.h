@@ -1,10 +1,8 @@
 #pragma once
 
 #include "csv.hpp"
-#include "internal/csv_format.hpp"
 #include "strutil.h"
 #include <algorithm>
-#include <bits/c++config.h>
 #include <chrono>
 #include <filesystem>
 #include <fstream>
@@ -74,9 +72,9 @@ private:
 class leader {
 public:
   bool load(csv::CSVRow& row) {
-    _name  = row[0].get<>();
-    _score = row[1].get<int>();
-    _time  = row[2].get<double>();
+    _name  = row["name"].get<>();
+    _score = row["score"].get<int>();
+    _time  = row["time"].get<double>();
     return !_name.empty();
   }
 
@@ -115,10 +113,8 @@ public:
   bool load() {
     _file.seekg(0);
     std::getline(_file, _stem); // read 1st line manually
-    _file.seekg(0); // and reset
-    auto format = csv::CSVFormat();
-    format.trim({' ', '\t'}).header_row(1); // skip first line
-    csv::CSVReader reader(_file, format);
+    _file.seekg(0); // and reset, then skip first line
+    csv::CSVReader reader(_file, csv::CSVFormat().trim({' ', '\t'}).header_row(1));
     for (csv::CSVRow& row: reader) {
       qa qa;
       qa.load(row);
@@ -203,9 +199,11 @@ private:
       print_lb();
     }
   }
+
+  
   void load_lb() {
     _lb_file.open(_lb_filename);
-    csv::CSVReader reader(_lb_file, csv::CSVFormat().trim({' ', '\t'}).no_header());
+    csv::CSVReader reader(_lb_file, csv::CSVFormat().trim({' ', '\t'}));
     _lb.clear();
     for (csv::CSVRow& row: reader) {
       leader ld;
@@ -216,17 +214,20 @@ private:
     std::sort(_lb.begin(), _lb.end(), std::greater<>());
   }
 
+  
   void write_lb() {
     if (!_lb.empty()) {
       _lb_file.open(_lb_filename, std::ios::out); // overwrite or create
       auto writer = csv::make_csv_writer(_lb_file);
-      // writer << std::make_tuple("Name", "Score", "Time");
+      writer << std::make_tuple("name", "score", "time");
       for (auto ld: _lb) {
         ld.write(writer);
       }
       _lb_file.close();
     }
   }
+
+  
   void print_lb() {
     if (!_lb.empty()) {
       std::cout << "\n\nLeaderboard\n\n";
