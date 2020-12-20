@@ -1,6 +1,7 @@
 #pragma once
 
 #include "csv.hpp"
+#include "internal/csv_format.hpp"
 #include "strutil.h"
 #include <algorithm>
 #include <bits/c++config.h>
@@ -24,11 +25,10 @@ enum class qa_resp { wrong, correct, skip };
 
 class qa {
 public:
-  bool load(std::istream& stream) {
-    if (!std::getline(stream, _question, ',') || !std::getline(stream, _answer, '\n')) return false;
-    trim(_answer);
-    trim(_question);
-    return !_question.empty() && !_answer.empty();
+  bool load(csv::CSVRow& row) {
+    _question = row["question"].get<>();
+    _answer   = row["answer"].get<>();
+    return !_question.empty();
   }
 
   [[nodiscard]] qa_resp ask(const std::string& stem) const {
@@ -61,6 +61,12 @@ public:
     return qa_resp::wrong;
   }
 
+  friend std::ostream& operator<<(std::ostream& os, const qa& qa) {
+    os << qa._question << ": " << qa._answer << "\n";
+    return os;
+  }
+
+private:
   std::string _question;
   std::string _answer;
 };
@@ -105,16 +111,23 @@ public:
     _file.open(_filename);
     return _file.is_open();
   }
+
   bool load() {
-    std::getline(_file, _stem, '\n');
-    qa qa;
-    while (qa.load(_file)) _qas.push_back(qa);
+    _file.seekg(0);
+    std::getline(_file, _stem); // read 1st line manually
+    _file.seekg(0); // and reset
+    auto format = csv::CSVFormat();
+    format.trim({' ', '\t'}).header_row(1); // skip first line
+    csv::CSVReader reader(_file, format);
+    for (csv::CSVRow& row: reader) {
+      qa qa;
+      qa.load(row);
+      _qas.push_back(qa);
+    }
     return !_qas.empty();
   }
+
   void run() {
-    load_lb();
-    print_lb();
-    return;
     std::vector<qa> qas = _qas; // make a copy
     while (!(qas = ask_questions(qas)).empty())
       ;
