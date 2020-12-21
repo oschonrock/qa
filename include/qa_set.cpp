@@ -5,9 +5,8 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
-#include <string>
 #include <random>
-
+#include <string>
 
 bool qa_set::open(const std::string& filename) {
   _filename = filename;
@@ -16,7 +15,6 @@ bool qa_set::open(const std::string& filename) {
   _file.open(_filename);
   return _file.is_open();
 }
-
 
 bool qa_set::load() {
   _file.seekg(0);
@@ -31,16 +29,15 @@ bool qa_set::load() {
   return !_qas.empty();
 }
 
-
 void qa_set::run() {
   std::vector<qa> qas = _qas; // make a copy
   while (!(qas = ask_questions(qas)).empty())
     ;
 }
 
-
 std::vector<qa> qa_set::ask_questions(std::vector<qa>& qas) {
-  std::cout << "\x1B[2J\x1B[H"; // clear screen
+  using std::cout;
+  cout << "\x1B[2J\x1B[H"; // clear screen
 
   std::random_device seed;
   std::mt19937       prng(seed());
@@ -48,8 +45,7 @@ std::vector<qa> qa_set::ask_questions(std::vector<qa>& qas) {
 
   int         correct_count = 0;
   std::size_t total         = qas.size();
-  std::cout << "Answer these " << total
-            << " questions. Answer '?' to temporarily skip a question\n\n";
+  cout << "Answer these " << total << " questions. Answer '?' to temporarily skip a question\n\n";
   std::vector<qa> wrong_qas;
   std::vector<qa> skipped_qas;
   auto            start = std::chrono::system_clock::now();
@@ -69,12 +65,12 @@ std::vector<qa> qa_set::ask_questions(std::vector<qa>& qas) {
     }
     qas = skipped_qas;
     skipped_qas.clear();
-    if (!qas.empty()) std::cout << "\nRestarting with skipped questions...\n\n";
+    if (!qas.empty()) cout << "\nRestarting with skipped questions...\n\n";
   }
   auto stop = std::chrono::system_clock::now();
 
-  std::cout << "\n\n-----------------------------\n";
-  std::cout << "You got " << correct_count << " out of " << total << " correct.\n\n";
+  cout << "\n\n-----------------------------\n";
+  cout << "You got " << correct_count << " out of " << total << " correct.\n\n";
 
   if (total == _qas.size()) { // this is the first run through. Leaderboard?
     int duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count();
@@ -90,7 +86,6 @@ std::vector<qa> qa_set::ask_questions(std::vector<qa>& qas) {
   return wrong_qas;
 }
 
-
 void qa_set::add_to_lb(leader ld) {
   if (_lb.size() < max_leaders || ld > _lb.back()) {
     std::cout << "Congratulations! You have made the Top " << max_leaders << " leaderboard!\n";
@@ -102,7 +97,6 @@ void qa_set::add_to_lb(leader ld) {
     print_lb();
   }
 }
-
 
 void qa_set::load_lb() {
   _lb_file.open(_lb_filename);
@@ -117,7 +111,6 @@ void qa_set::load_lb() {
   std::sort(_lb.begin(), _lb.end(), std::greater<>());
 }
 
-
 void qa_set::write_lb() {
   if (!_lb.empty()) {
     _lb_file.open(_lb_filename, std::ios::out); // overwrite or create
@@ -129,7 +122,6 @@ void qa_set::write_lb() {
     _lb_file.close();
   }
 }
-
 
 void qa_set::print_lb() {
   if (!_lb.empty()) {

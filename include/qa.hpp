@@ -2,6 +2,7 @@
 
 #include "csv.hpp"
 #include <string>
+#include <iostream>
 
 enum class qa_resp { wrong, correct, skip };
 
