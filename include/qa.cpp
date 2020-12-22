@@ -9,13 +9,13 @@ bool qa::load(const csv::CSVRow& row) {
 
 #ifdef _WIN32
 void win32_console_move_cursor_relative(int dx, int dy) {
-  HANDLE                     h = GetStdHandle(STD_OUTPUT_HANDLE);
-  CONSOLE_SCREEN_BUFFER_INFO csbi;
-  GetConsoleScreenBufferInfo(h, &csbi);
-  COORD cursorPos = csbi.dwCursorPosition;
+  HANDLE                     console = GetStdHandle(STD_OUTPUT_HANDLE);
+  CONSOLE_SCREEN_BUFFER_INFO screen;
+  GetConsoleScreenBufferInfo(console, &screen);
+  COORD cursorPos = screen.dwCursorPosition;
   cursorPos.X += dx;
   cursorPos.Y += dy;
-  SetConsoleCursorPosition(h, cursorPos);
+  SetConsoleCursorPosition(console, cursorPos);
 }
 #endif
 

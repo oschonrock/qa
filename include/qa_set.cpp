@@ -52,9 +52,9 @@ void win32_console_clear_screen() {
 
 std::vector<qa> qa_set::ask_questions(std::vector<qa>& qas) {
   using std::cout;
-  
+
 #ifdef _WIN32
-  win32_console_clear_screen();   
+  win32_console_clear_screen();
 #else
   cout << "\x1B[2J\x1B[H"; // clear screen using ANSI sequence
 #endif
