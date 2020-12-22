@@ -35,9 +35,29 @@ void qa_set::run() {
     ;
 }
 
+#ifdef _WIN32
+void win32_console_clear_screen() {
+  COORD                      topLeft = {0, 0};
+  HANDLE                     console = GetStdHandle(STD_OUTPUT_HANDLE);
+  CONSOLE_SCREEN_BUFFER_INFO screen;
+  DWORD                      written;
+
+  GetConsoleScreenBufferInfo(console, &screen);
+  FillConsoleOutputCharacterA(console, ' ', screen.dwSize.X * screen.dwSize.Y, topLeft, &written);
+  FillConsoleOutputAttribute(console, FOREGROUND_GREEN | FOREGROUND_RED | FOREGROUND_BLUE,
+                             screen.dwSize.X * screen.dwSize.Y, topLeft, &written);
+  SetConsoleCursorPosition(console, topLeft);
+}
+#endif
+
 std::vector<qa> qa_set::ask_questions(std::vector<qa>& qas) {
   using std::cout;
-  cout << "\x1B[2J\x1B[H"; // clear screen
+  
+#ifdef _WIN32
+  win32_console_clear_screen();   
+#else
+  cout << "\x1B[2J\x1B[H"; // clear screen using ANSI sequence
+#endif
 
   std::random_device seed;
   std::mt19937       prng(seed());
