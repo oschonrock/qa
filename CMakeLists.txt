@@ -20,7 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.15)
 project(qa)
 
 # set path to custom cmake modules
@@ -33,7 +33,12 @@ include(scripts)
 conan_init(cmake)
 
 set(CMAKE_CXX_STANDARD 17)
-add_compile_options(-Wall -Wextra -Wno-reorder-ctor)
+if (MSVC)
+	add_compile_options(-Wall)
+else()
+	add_compile_options(-Wall -Wextra)
+endif()
+
 add_subdirectory(csv-parser)
 include_directories(include include/toolbelt csv-parser/include)
 add_executable(qa apps/qanda.cpp)
