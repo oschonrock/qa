@@ -40,7 +40,6 @@ std::vector<qa> qa_set::ask_questions(std::vector<qa>& qas) {
   using std::cout;
 
   xos::console::clear_screen();
-  xos::console::move_cursor_absolute(3, 3);
   
   std::random_device seed;
   std::mt19937       prng(seed());

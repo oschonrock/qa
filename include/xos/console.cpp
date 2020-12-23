@@ -2,6 +2,9 @@
 #include <iostream>
 #include <string_view>
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
 namespace xos::console {
 
 namespace impl {
@@ -30,12 +33,6 @@ void win32_move_cursor_relative(int dx, int dy) {
   COORD cursorPos = screen.dwCursorPosition;
   cursorPos.X += dx;
   cursorPos.Y += dy;
-  SetConsoleCursorPosition(console, cursorPos);
-}
-
-void win32_move_cursor_absolute(int x, int y) {
-  HANDLE console   = GetStdHandle(STD_OUTPUT_HANDLE);
-  COORD  cursorPos = {x, y};
   SetConsoleCursorPosition(console, cursorPos);
 }
 
@@ -91,14 +88,17 @@ void move_cursor_relative(int dx, int dy) {
 /**
  * @brief      platform indepent console cursor relative movement
  * @details    works on *nix, macOS and Windows
- * @param      int x 1 is top leftmost column
- * @param      int y 1 is top row
+ * @param      int x 0 is top leftmost column
+ * @param      int y 0 is top row
  */
 void move_cursor_absolute(int x, int y) {
 #ifdef _WIN32
-  impl::win32_move_cursor_absolute(dx, dy);
+  HANDLE console   = GetStdHandle(STD_OUTPUT_HANDLE);
+  COORD  cursorPos = {x, y};
+  SetConsoleCursorPosition(console, cursorPos);
 #else
-  std::cout << impl::ansi::csi << y << ';' << x << impl::ansi::cursor_pos;
+  // ansi code is 1 based - stick to zero based for consistency
+  std::cout << impl::ansi::csi << (y + 1) << ';' << (x + 1) << impl::ansi::cursor_pos;
 #endif
 }
 
