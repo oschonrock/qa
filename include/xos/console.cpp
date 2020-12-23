@@ -72,7 +72,7 @@ void nix_move_cursor_relative(int dx, int dy) {
 } // namespace impl
 
 /**
- * @brief      platform indepent console cursor relative movement
+ * @brief      platform independent console cursor relative movement
  * @details    works on *nix, macOS and Windows
  * @param      int dx +ve is right
  * @param      int dy +ve is down
@@ -86,7 +86,7 @@ void move_cursor_relative(int dx, int dy) {
 }
 
 /**
- * @brief      platform indepent console cursor relative movement
+ * @brief      platform independent console cursor absolute movement
  * @details    works on *nix, macOS and Windows
  * @param      int x 0 is top leftmost column
  * @param      int y 0 is top row
@@ -103,7 +103,7 @@ void move_cursor_absolute(int x, int y) {
 }
 
 /**
- * @brief      platform indepent console clear screen
+ * @brief      platform independent console clear screen
  * @details    clear visible console (not scrollback) and moves home (1, 1)
  */
 void clear_screen() {
