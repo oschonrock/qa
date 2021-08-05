@@ -1,5 +1,6 @@
 #include "qa.hpp"
 #include "strutil.h"
+#include "xos/console.hpp"
 
 bool qa::load(const csv::CSVRow& row) {
   _question = row["question"].get<>();
@@ -14,7 +15,9 @@ bool qa::load(const csv::CSVRow& row) {
   string ans;
   std::getline(std::cin, ans, '\n');
   std::size_t posx = prompt.size() + ans.size() + 3;
-  cout << "\x1B[1A\x1B[" << posx << "C"; // move cursor to end of answer
+
+  xos::console::move_cursor_relative(posx, -1);
+  
   trim(ans);
   if (ans == "?") {
     cout << "=> Skipped\n";

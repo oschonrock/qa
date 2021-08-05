@@ -1,5 +1,6 @@
 #include "qa_set.hpp"
 #include "strutil.h"
+#include "xos/console.hpp"
 #include <algorithm>
 #include <chrono>
 #include <filesystem>
@@ -37,8 +38,8 @@ void qa_set::run() {
 
 std::vector<qa> qa_set::ask_questions(std::vector<qa>& qas) {
   using std::cout;
-  cout << "\x1B[2J\x1B[H"; // clear screen
 
+  xos::console::clear_screen();
   std::shuffle(qas.begin(), qas.end(), std::mt19937(std::random_device{}()));
 
   int         correct_count = 0;
