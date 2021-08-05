@@ -39,9 +39,7 @@ std::vector<qa> qa_set::ask_questions(std::vector<qa>& qas) {
   using std::cout;
   cout << "\x1B[2J\x1B[H"; // clear screen
 
-  std::random_device seed;
-  std::mt19937       prng(seed());
-  std::shuffle(qas.begin(), qas.end(), prng);
+  std::shuffle(qas.begin(), qas.end(), std::mt19937(std::random_device{}()));
 
   int         correct_count = 0;
   std::size_t total         = qas.size();
