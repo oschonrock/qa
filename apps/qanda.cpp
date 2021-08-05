@@ -2,7 +2,6 @@
 #include <iostream>
 
 int main(int argc, char** argv) {
-  std::ifstream f;
   if (argc < 2) {
     std::cerr << "Usage: " << argv[0] << " question_answer.csv\n"; // NOLINT
     return EXIT_FAILURE;
