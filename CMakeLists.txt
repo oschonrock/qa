@@ -36,7 +36,7 @@ set(CMAKE_CXX_STANDARD 17)
 if (MSVC)
 	add_compile_options(-Wall)
 else()
-	add_compile_options(-Wall -Wextra)
+	add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
 add_subdirectory(csv-parser)
