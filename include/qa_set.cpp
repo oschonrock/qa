@@ -3,11 +3,13 @@
 #include "xos/console.hpp"
 #include <algorithm>
 #include <chrono>
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <random>
 #include <string>
+#include <iomanip>
 
 bool qa_set::open(const std::string& filename) {
   _filename = filename;
@@ -67,14 +69,15 @@ std::vector<qa> qa_set::ask_questions(std::vector<qa>& qas) {
     if (!qas.empty()) cout << "\nRestarting with skipped questions...\n\n";
   }
   auto stop = std::chrono::system_clock::now();
+  double time = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count() / 1000.0;
 
   cout << "\n\n-----------------------------\n";
-  cout << "You got " << correct_count << " out of " << total << " correct.\n\n";
+  cout << "You got " << correct_count << " out of " << total << " correct, in "
+       << leader::time_to_string(time) << "\n\n";
 
   if (total == _qas.size()) { // this is the first run through. Leaderboard?
-    int duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count();
     load_lb();
-    leader new_ld = {"", correct_count, duration_ms / 1000.0};
+    leader new_ld = {"", correct_count, time};
     add_to_lb(new_ld);
     write_lb();
   }
@@ -131,9 +134,8 @@ void qa_set::print_lb() {
     int counter = 0;
     for (const auto& ld: _lb) {
       counter++;
-      printf("%4d   %-20s   %5d   %02d:%04.1f\n", counter, ld._name.c_str(), ld._score, // NOLINT
-             static_cast<int>(ld._time / 60),
-             static_cast<int>(ld._time) % 60 + ld._time - static_cast<int>(ld._time));
+      printf("%4d   %-20s   %5d   %s\n", counter, ld._name.c_str(), ld._score, // NOLINT
+             leader::time_to_string(ld._time).data());
     }
     std::cout << "\n\n";
   }
