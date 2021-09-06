@@ -16,3 +16,9 @@
 [submodule "csv-parser"]
 	path = csv-parser
 	url = https://github.com/vincentlaucsb/csv-parser.git
+[submodule "include/fmt"]
+	path = include/fmt
+	url = https://github.com/fmtlib/fmt.git
+[submodule "include/dyno"]
+	path = include/dyno
+	url = https://github.com/ldionne/dyno.git
