@@ -20,7 +20,7 @@ private:
 
   std::vector<qa> ask_questions(std::vector<qa>& qas);
 
-  const std::size_t max_leaders = 10;
+  static constexpr std::size_t max_leaders = 10;
 
   void add_to_lb(leader ld);
   void load_lb();
