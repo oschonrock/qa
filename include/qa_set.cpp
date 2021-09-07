@@ -39,14 +39,16 @@ void qa_set::run() {
 }
 
 std::vector<qa> qa_set::ask_questions(std::vector<qa>& qas) {
-  using std::cout;
-
   xos::console::clear_screen();
   std::shuffle(qas.begin(), qas.end(), std::mt19937(std::random_device{}()));
 
+  using std::cout;
+
   int         correct_count = 0;
   std::size_t total         = qas.size();
+
   cout << "Answer these " << total << " questions. Answer '?' to temporarily skip a question\n\n";
+  
   std::vector<qa> wrong_qas;
   std::vector<qa> skipped_qas;
   auto            start = std::chrono::system_clock::now();
@@ -69,8 +71,9 @@ std::vector<qa> qa_set::ask_questions(std::vector<qa>& qas) {
     if (!qas.empty()) cout << "\nRestarting with skipped questions...\n\n";
   }
   auto   stop = std::chrono::system_clock::now();
-  double time =
-      std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count() / 1000.0;
+  double time = static_cast<double>(
+                    std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count()) /
+                1000.0;
 
   cout << "\n\n-----------------------------\n";
   cout << "You got " << correct_count << " out of " << total << " correct, in "
@@ -90,12 +93,12 @@ std::vector<qa> qa_set::ask_questions(std::vector<qa>& qas) {
 }
 
 void qa_set::add_to_lb(leader ld) {
-  if (lb_.size() < max_leaders || ld > lb_.back()) {
+  if (lb_.size() < max_leaders || ld > lb_.back()) { // NOLINT bogus nullptr warning
     std::cout << "Congratulations! You have made the Top " << max_leaders << " leaderboard!\n";
     std::cout << "Please enter your name: ";
     std::getline(std::cin, ld.name_, '\n');
     trim(ld.name_);
-    lb_.insert(std::upper_bound(lb_.begin(), lb_.end(), ld, std::greater<>()), ld);
+    lb_.insert(std::upper_bound(lb_.begin(), lb_.end(), ld, std::greater()), ld);
     if (lb_.size() > max_leaders) lb_.erase(lb_.begin() + max_leaders, lb_.end());
     print_lb();
   }

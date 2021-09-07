@@ -1,11 +1,12 @@
 #include <algorithm>
+#include <cstddef>
+#include <deque>
 #include <iomanip>
 #include <ios>
 #include <iostream>
 #include <numeric>
 #include <string>
 #include <vector>
-#include <deque>
 
 constexpr std::size_t window_ahead  = 3;
 constexpr std::size_t window_behind = 5;
@@ -22,13 +23,7 @@ void print_window(const std::deque<std::string>& window) {
   std::cout << "\n";
 }
 
-// class window {
-//  public:
-//  private:
-//   map_
-//   }
-
-int main() {
+int main() { // NOLINT cognitive complexity
   std::ios::sync_with_stdio(false);
   std::string                                  w;
   std::unordered_map<std::string, std::size_t> map;
@@ -48,7 +43,7 @@ int main() {
         print_window(window);
         // pre fill stage
         for (std::size_t i = 0; i < window.size(); ++i) {
-          if (i != window.size() -1) { // ie not "current"
+          if (i != window.size() - 1) { // ie not "current"
             std::cout << window[window.size() - 1] << " " << window[i] << "\n";
           }
         }
@@ -81,19 +76,18 @@ int main() {
   std::partial_sort_copy(begin(map), end(map), begin(topN), end(topN),
                          [](auto& a, auto& b) { return a.second > b.second; });
 
-  std::size_t wc = std::accumulate(begin(map), end(map), 0,
-                                   [](int tot, const auto& p) { return tot + p.second; });
+  std::size_t wc = std::accumulate(begin(map), end(map), 0UL,
+                                   [](std::size_t tot, const auto& p) { return tot + p.second; });
 
+  using std::cout, std::fixed, std::left, std::right, std::setw, std::setprecision;
   // output
-  std::cout.imbue(std::locale(""));
-  std::cout << std::setw(12) << std::left << "word count" << std::setw(10) << std::right << wc
-            << "\n";
-  std::cout << std::setw(12) << std::left << "unique words" << std::setw(10) << std::right
-            << map.size() << "\n\n";
-  std::cout << "Top " << N << " words\n\n";
+  cout.imbue(std::locale(""));
+  cout << setw(12) << left << "word count" << setw(10) << right << wc << "\n"
+       << setw(12) << left << "unique words" << setw(10) << right << map.size() << "\n\n"
+       << "Top " << N << " words\n\n";
   for (auto&& [word, freq]: topN)
-    std::cout << std::setw(10) << std::left << word << std::right << std::setw(8) << freq
-              << std::setw(6) << std::fixed << std::setprecision(2) << 100.0 * freq / wc << "%\n";
+    cout << setw(10) << left << word << right << setw(8) << freq << setw(6) << fixed
+         << setprecision(2) << 100.0 * static_cast<double>(freq) / static_cast<double>(wc) << "%\n";
 
-  exit(EXIT_SUCCESS);
+  return EXIT_SUCCESS;
 }
