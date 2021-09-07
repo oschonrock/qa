@@ -20,13 +20,6 @@ struct split_on_non_alpha : std::ctype<char> {
   explicit split_on_non_alpha(std::size_t refs = 0) : ctype(make_table(), false, refs) {}
 };
 
-
-auto foo(std::int32_t max, std::int32_t num) {
-    return max * num;
-}
-
-int32_t bar(std::int32_t max, std::int32_t num) { return bar(max, num) * bar(max, num); }
-
 int main() {
   std::unordered_map<std::string, std::size_t> map;
   using map_entry_t = std::pair<decltype(map)::key_type, decltype(map)::mapped_type>;
@@ -37,7 +30,7 @@ int main() {
   std::string w;
   while (std::cin >> w) {
     std::transform(begin(w), end(w), begin(w), [](unsigned char c) { return std::tolower(c); });
-    ++map[w]; // can't be empty
+    ++map[w]; // can't be empty, due to split algo above, so no need to check
   }
 
   constexpr std::size_t    N = 10;

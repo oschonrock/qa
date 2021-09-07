@@ -1,4 +1,5 @@
 #include "csv.hpp"
+#include "fmt/format.h"
 #include <compare>
 #include <iomanip>
 #include <string>
@@ -15,10 +16,7 @@ public:
   static std::string time_to_string(double time) {
     int                minutes = static_cast<int>(time / 60);
     double             seconds = time - (60 * minutes);
-    std::ostringstream buf;
-    buf << std::setfill('0') << std::setw(2) << minutes << ':' << std::fixed << std::setw(4)
-        << std::setprecision(1) << seconds;
-    return buf.str();
+    return fmt::format("{:02d}:{:04.1f}", minutes, seconds);
   }
 
   std::partial_ordering operator<=>(leader const& rhs) const {

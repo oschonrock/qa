@@ -1,4 +1,5 @@
 #include "qa_set.hpp"
+#include "fmt/include/fmt/core.h"
 #include "strutil.h"
 #include "xos/console.hpp"
 #include <algorithm>
@@ -42,13 +43,11 @@ std::vector<qa> qa_set::ask_questions(std::vector<qa>& qas) {
   xos::console::clear_screen();
   std::shuffle(qas.begin(), qas.end(), std::mt19937(std::random_device{}()));
 
-  using std::cout;
-
   int         correct_count = 0;
   std::size_t total         = qas.size();
 
-  cout << "Answer these " << total << " questions. Answer '?' to temporarily skip a question\n\n";
-  
+  fmt::print("Answer these {:d} questions. Answer '?' to temporarily skip a question\n\n", total);
+
   std::vector<qa> wrong_qas;
   std::vector<qa> skipped_qas;
   auto            start = std::chrono::system_clock::now();
@@ -68,16 +67,16 @@ std::vector<qa> qa_set::ask_questions(std::vector<qa>& qas) {
     }
     qas = skipped_qas;
     skipped_qas.clear();
-    if (!qas.empty()) cout << "\nRestarting with skipped questions...\n\n";
+    if (!qas.empty()) fmt::print("\nRestarting with skipped questions...\n\n");
   }
   auto   stop = std::chrono::system_clock::now();
   double time = static_cast<double>(
                     std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count()) /
                 1000.0;
 
-  cout << "\n\n-----------------------------\n";
-  cout << "You got " << correct_count << " out of " << total << " correct, in "
-       << leader::time_to_string(time) << "\n\n";
+  fmt::print("\n\n-----------------------------\n");
+  fmt::print("You got {:d} out of {:d} correct, in {:s}.\n\n", correct_count, total,
+             leader::time_to_string(time));
 
   if (total == qas_.size()) { // this is the first run through. Leaderboard?
     load_lb();
@@ -86,7 +85,7 @@ std::vector<qa> qa_set::ask_questions(std::vector<qa>& qas) {
     write_lb();
   }
 
-  std::cout << "Hit Enter to " << (wrong_qas.empty() ? "quit." : "proceed to wrong questons.");
+  fmt::print("Hit Enter to {:s}", wrong_qas.empty() ? "quit." : "proceed to wrong questons.");
   std::string enter;
   std::getline(std::cin, enter, '\n');
   return wrong_qas;
@@ -94,8 +93,8 @@ std::vector<qa> qa_set::ask_questions(std::vector<qa>& qas) {
 
 void qa_set::add_to_lb(leader ld) {
   if (lb_.size() < max_leaders || ld > lb_.back()) { // NOLINT bogus nullptr warning
-    std::cout << "Congratulations! You have made the Top " << max_leaders << " leaderboard!\n";
-    std::cout << "Please enter your name: ";
+    fmt::print("Congratulations! You have made the Top {:d} leaderboard!\n", max_leaders);
+    fmt::print("Please enter your name: ");
     std::getline(std::cin, ld.name_, '\n');
     trim(ld.name_);
     lb_.insert(std::upper_bound(lb_.begin(), lb_.end(), ld, std::greater()), ld);
@@ -131,16 +130,16 @@ void qa_set::write_lb() {
 
 void qa_set::print_lb() {
   if (!lb_.empty()) {
-    std::cout << "\n\nLeaderboard\n\n";
-    printf("%4s   %-20s   %5s   %7s\n", "Rank", "Name", "Score", "Time"); // NOLINT
-    std::cout << std::string(4, '-') << "   " << std::string(20, '-') << "   "
-              << std::string(5, '-') << "   " << std::string(7, '-') << '\n';
+    fmt::print("\n\nLeaderboard\n\n");
+    fmt::print("{:4s}   {:<20s}   {:>5s}   {:>7s}\n", "Rank", "Name", "Score", "Time");
+
+    fmt::print("{:-<4s}   {:-<20s}   {:->5s}   {:->7s}\n", "", "", "", "");
     int counter = 0;
     for (const auto& ld: lb_) {
       counter++;
-      printf("%4d   %-20s   %5d   %s\n", counter, ld.name_.c_str(), ld.score_, // NOLINT
-             leader::time_to_string(ld.time_).data());
+      fmt::print("{:4d}   {:<20s}   {:>5d}   {:>7s}\n", counter, ld.name_.c_str(), ld.score_,
+                 leader::time_to_string(ld.time_).data());
     }
-    std::cout << "\n\n";
+    fmt::print("\n\n");
   }
 }

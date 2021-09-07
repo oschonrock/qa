@@ -47,8 +47,7 @@ add_subdirectory(csv-parser)
 add_executable(qa apps/qanda.cpp)
 target_sources(qa PRIVATE include/qa_set.cpp include/qa.cpp include/xos/console.cpp)
 
-target_link_libraries(qa PRIVATE Threads::Threads)
-target_link_libraries(qa PRIVATE csv)
+target_link_libraries(qa PRIVATE Threads::Threads csv fmt)
 
 add_executable(pi apps/pi.cpp)
 add_executable(pytrip apps/pytrip.cpp)
