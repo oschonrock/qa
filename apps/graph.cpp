@@ -4,6 +4,7 @@
 #include <numeric>
 #include <queue>
 #include <stack>
+#include <stdexcept>
 #include <string>
 
 class graph {
@@ -26,12 +27,9 @@ public:
       : edges_(std::move(edges)), node_count_(node_count(edges_)) {
 
     adj_list_.resize(node_count_);
-    for (auto& e: edges_) {
-      adj_list_[e.src].push_back(e);
-      if (!directed) {
-        edge r = e.reverse();
-        adj_list_[r.src].push_back(r);
-      }
+    for (const auto& e: edges_) {
+      add_edge(e);
+      if (!directed) add_edge(e.reverse());
     }
   }
 
@@ -144,8 +142,7 @@ public:
     std::cout << "\n";
   }
 
-  static void print_result(const std::vector<node_info>& ni, std::size_t source) {
-    // print result
+  static void print_shortest_path(const std::vector<node_info>& ni, std::size_t source) {
     std::size_t N = ni.size();
     for (std::size_t n = 0; n < N; ++n) {
       if (ni[n].done && n != source) {
@@ -189,6 +186,12 @@ private:
     return nodes.size();
   }
 
+  void add_edge(const edge& e) {
+    if (e.src < 0 || e.src > node_count_ - 1 || e.dest < 0 || e.dest > node_count_ - 1)
+      throw std::logic_error("edge must have nodes in range 0 -> node_count -1");
+    adj_list_[e.src].push_back(e);
+  }
+
   static void print_path(const std::vector<node_info>& ni, std::size_t i) {
     if (ni[i].prev == std::numeric_limits<std::size_t>::max()) {
       std::cout << i << " ";
@@ -219,27 +222,31 @@ int main() {
           {2, 7, 1},
           {2, 8, 1},
           {3, 9, 1},
-
-          // {0, 1, 4},
-          //   {0, 7, 4},
-          //   {1, 2, 8},
-          //   {1, 7, 11},
-          //   {2, 8, 2},
-          //   {2, 5, 4},
-          //   {2, 3, 7},
-          //   {3, 5, 14},
-          //   {3, 4, 9},
-          //   {4, 5, 10},
-          //   {5, 6, 2},
-          //   {6, 8, 6},
-          //   {6, 7, 1},
-          //   {7, 8, 7},
       },
       false);
+  
   std::cout << g;
-  // std::size_t source = 0;
-  // auto        result = g.shortest_path(source);
-  // g.print_result(result, source);
   g.depth_first_traversal(0);
   g.breadth_first_traversal(0);
+
+  graph g2({
+      {0, 1, 4},
+      {0, 7, 4},
+      {1, 2, 8},
+      {1, 7, 11},
+      {2, 8, 2},
+      {2, 5, 4},
+      {2, 3, 7},
+      {3, 5, 14},
+      {3, 4, 9},
+      {4, 5, 10},
+      {5, 6, 2},
+      {6, 8, 6},
+      {6, 7, 1},
+      {7, 8, 7},
+  });
+  std::cout << g2;
+  std::size_t source = 0;
+  auto        result = g.shortest_path(source);
+  graph::print_shortest_path(result, source);
 }
