@@ -1,8 +1,8 @@
 #pragma once
 
 #include "csv.hpp"
-#include <string>
 #include <iostream>
+#include <string>
 
 enum class qa_resp { wrong, correct, skip };
 
@@ -13,11 +13,11 @@ public:
   [[nodiscard]] qa_resp ask(const std::string& stem) const;
 
   friend std::ostream& operator<<(std::ostream& os, const qa& qa) {
-    os << qa._question << ": " << qa._answer << "\n";
+    os << qa.question_ << ": " << qa.answer_ << "\n";
     return os;
   }
 
 private:
-  std::string _question;
-  std::string _answer;
+  std::string question_;
+  std::string answer_;
 };

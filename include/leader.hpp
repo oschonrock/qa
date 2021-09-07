@@ -1,43 +1,38 @@
 #include "csv.hpp"
-#include <string>
+#include <compare>
 #include <iomanip>
+#include <string>
 
 class leader {
 public:
   bool load(const csv::CSVRow& row) {
-    _name  = row["name"].get<>();
-    _score = row["score"].get<int>();
-    _time  = row["time"].get<double>();
-    return !_name.empty();
+    name_  = row["name"].get<>();
+    score_ = row["score"].get<int>();
+    time_  = row["time"].get<double>();
+    return !name_.empty();
   }
 
   static std::string time_to_string(double time) {
-    int minutes = static_cast<int>(time / 60);
-    double seconds = time - (60 * minutes);
+    int                minutes = static_cast<int>(time / 60);
+    double             seconds = time - (60 * minutes);
     std::ostringstream buf;
-    buf << std::setfill('0') << std::setw(2) << minutes << ':'
-        << std::fixed << std::setw(4) << std::setprecision(1) << seconds;
+    buf << std::setfill('0') << std::setw(2) << minutes << ':' << std::fixed << std::setw(4)
+        << std::setprecision(1) << seconds;
     return buf.str();
   }
-  
-  bool operator<(const leader& other) const {
-    return _score < other._score || (_score == other._score && _time > other._time);
+
+  std::partial_ordering operator<=>(leader const& rhs) const {
+    if (std::strong_ordering c = score_ <=> rhs.score_; !std::is_eq(c)) return c;
+    // must return partial due to this float comparison. Note it is reversed!
+    return rhs.time_ <=> time_;
   }
-  bool operator==(const leader& other) const {
-    const double epsilon = 0.01;
-    return _score == other._score && std::fabs(_time - other._time) < epsilon;
-  }
-  bool operator>(const leader& other) const { return other < *this; }
-  bool operator!=(const leader& other) const { return !(*this == other); }
-  bool operator<=(const leader& other) const { return !(*this > other); }
-  bool operator>=(const leader& other) const { return !(*this < other); }
 
   bool write(csv::CSVWriter<std::fstream>& writer) const {
-    writer << std::make_tuple(_name, _score, _time);
+    writer << std::make_tuple(name_, score_, time_);
     return true;
   }
 
-  std::string _name;
-  int         _score = 0;
-  double      _time  = 0;
+  std::string name_;
+  int         score_ = 0;
+  double      time_  = 0;
 };

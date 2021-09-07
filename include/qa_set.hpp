@@ -10,13 +10,13 @@ public:
   void run();
 
 private:
-  std::vector<qa>     _qas;
-  std::vector<leader> _lb;
-  std::string         _stem;
-  std::string         _filename;
-  std::string         _lb_filename;
-  std::ifstream       _file;
-  std::fstream        _lb_file;
+  std::vector<qa>     qas_;
+  std::vector<leader> lb_;
+  std::string         stem_;
+  std::string         filename_;
+  std::string         lb_filename_;
+  std::ifstream       file_;
+  std::fstream        lb_file_;
 
   std::vector<qa> ask_questions(std::vector<qa>& qas);
 
