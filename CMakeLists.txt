@@ -51,6 +51,7 @@ target_link_libraries(qa PRIVATE Threads::Threads)
 target_link_libraries(qa PRIVATE csv)
 
 add_executable(pi apps/pi.cpp)
+add_executable(pytrip apps/pytrip.cpp)
 add_executable(graph apps/graph.cpp)
 add_executable(fib apps/fib.cpp)
 
