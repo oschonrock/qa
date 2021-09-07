@@ -1,13 +1,14 @@
 #include <algorithm>
 #include <benchmark/benchmark.h>
+#include <cstddef>
 #include <random>
 #include <unordered_set>
 #include <vector>
 
 void gen1(benchmark::State& state) {
-  std::size_t                                no_nodes = state.range(0);
+  auto                                       no_nodes = static_cast<std::size_t>(state.range(0));
   std::size_t                                no_edges = no_nodes * 2;
-  std::mt19937_64                            rgen(1);
+  std::mt19937_64                            rgen(1); // NOLINT fixed seed
   std::uniform_int_distribution<std::size_t> dist(0, no_nodes - 1);
 
   std::vector<std::size_t> rvs(no_edges);
@@ -15,6 +16,7 @@ void gen1(benchmark::State& state) {
 
   for (auto _: state) {
     std::vector<std::size_t> uniqverts;
+    uniqverts.reserve(rvs.size());
     for (auto&& e: rvs) uniqverts.push_back(e);
     std::sort(begin(uniqverts), end(uniqverts));
     uniqverts.erase(std::unique(begin(uniqverts), end(uniqverts)), uniqverts.end());
@@ -26,12 +28,12 @@ void gen1(benchmark::State& state) {
     benchmark::DoNotOptimize(max);
   }
 }
-BENCHMARK(gen1)->Range(8, 8 << 16);
+BENCHMARK(gen1)->Range(8, 8U << 16U);
 
 void gen2(benchmark::State& state) {
-  std::size_t                                no_nodes = state.range(0);
+  auto                                       no_nodes = static_cast<std::size_t>(state.range(0));
   std::size_t                                no_edges = no_nodes * 2;
-  std::mt19937_64                            rgen(1);
+  std::mt19937_64                            rgen(1); // NOLINT fixed seed
   std::uniform_int_distribution<std::size_t> dist(0, no_nodes - 1);
 
   std::vector<std::size_t> rvs(no_edges);
@@ -49,6 +51,6 @@ void gen2(benchmark::State& state) {
     benchmark::DoNotOptimize(max);
   }
 }
-BENCHMARK(gen2)->Range(8, 8 << 16);
+BENCHMARK(gen2)->Range(8, 8U << 16U);
 
 BENCHMARK_MAIN();
