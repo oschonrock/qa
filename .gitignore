@@ -34,4 +34,3 @@
 .clangd
 build
 /.cache/
-data/.lb_*
