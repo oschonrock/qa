@@ -32,7 +32,7 @@ constexpr T arctan(T tan) {
   for (int n = 0; sum + std::fabs(prod) != sum; ++n) {
     prod = 1;
     for (int k = 1; k <= n; ++k)
-      prod *= 2 * k * tan * tan / ((2 * k + 1) * (1 + tan * tan)); //  Eulers Series
+      prod *= 2 * static_cast<T>(k) * tan * tan / ((2 * static_cast<T>(k) + 1) * (1 + tan * tan)); //  Eulers Series
     sum += prod;
   }
   return tan / (1 + tan * tan) * sum;

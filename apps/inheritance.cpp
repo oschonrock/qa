@@ -1,3 +1,4 @@
+#include <cstddef>
 #define _USE_MATH_DEFINES
 
 #include <algorithm>
@@ -62,7 +63,7 @@ public:
 
   [[nodiscard]] iface::color     color() const override { return col_; }
   [[nodiscard]] std::string_view color_str() const override {
-    return iface::color_str[static_cast<int>(col_)];
+    return iface::color_str[static_cast<std::size_t>(col_)];
   }
 
 private:

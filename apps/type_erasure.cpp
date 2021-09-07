@@ -1,3 +1,4 @@
+#include <cstddef>
 #define _USE_MATH_DEFINES
 
 #include <algorithm>
@@ -35,7 +36,7 @@ public:
 
   [[nodiscard]] enum color       color() const { return col_; }
   [[nodiscard]] std::string_view color_str() const {
-    return geo::color_str[static_cast<int>(col_)];
+    return geo::color_str[static_cast<std::size_t>(col_)];
   }
   [[nodiscard]] std::string name() const { return "square width " + std::to_string(width_); }
   [[nodiscard]] double      area() const { return width_ * width_; }
@@ -73,7 +74,7 @@ public:
 
   [[nodiscard]] enum color       color() const { return col_; }
   [[nodiscard]] std::string_view color_str() const {
-    return geo::color_str[static_cast<int>(col_)];
+    return geo::color_str[static_cast<std::size_t>(col_)];
   }
 
   [[nodiscard]] std::string name() const {
@@ -110,7 +111,7 @@ public:
 
   [[nodiscard]] enum color       color() const { return col_; }
   [[nodiscard]] std::string_view color_str() const {
-    return geo::color_str[static_cast<int>(col_)];
+    return geo::color_str[static_cast<std::size_t>(col_)];
   }
   [[nodiscard]] std::string name() const { return "circle radius " + std::to_string(radius_); }
   [[nodiscard]] double      area() const { return M_PI * radius_ * radius_; }

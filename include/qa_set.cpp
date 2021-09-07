@@ -121,9 +121,7 @@ void qa_set::write_lb() {
     lb_file_.open(lb_filename_, std::ios::out); // overwrite or create
     auto writer = csv::make_csv_writer(lb_file_);
     writer << std::make_tuple("name", "score", "time");
-    for (const auto& ld: lb_) {
-      ld.write(writer);
-    }
+    for (const auto& ld: lb_) ld.write(writer);
     lb_file_.close();
   }
 }

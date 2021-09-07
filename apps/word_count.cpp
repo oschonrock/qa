@@ -38,8 +38,8 @@ int main() {
   std::partial_sort_copy(begin(map), end(map), begin(topN), end(topN),
                          [](auto& a, auto& b) { return a.second > b.second; });
 
-  std::size_t wc = std::accumulate(begin(map), end(map), 0,
-                                   [](int tot, const auto& p) { return tot + p.second; });
+  std::size_t wc = std::accumulate(begin(map), end(map), 0UL,
+                                   [](std::size_t tot, const auto& p) { return tot + p.second; });
 
   std::locale::global(std::locale("")); // user preferred locale
   fmt::print("{:<12s} {:>10Ld}\n", "word count", wc);

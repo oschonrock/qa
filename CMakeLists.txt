@@ -44,9 +44,12 @@ find_package(benchmark REQUIRED)
 include_directories(include include/toolbelt csv-parser/include)
 
 add_subdirectory(csv-parser)
+# csv parser throws many sign & conversion errors
+target_compile_options(csv PUBLIC -Wno-sign-conversion -Wno-implicit-int-float-conversion -Wno-float-conversion -Wno-shorten-64-to-32)
+target_compile_options(csv_info PRIVATE -Wno-sign-conversion)
+target_compile_options(csv_stats PRIVATE -Wno-sign-conversion)
 add_executable(qa apps/qanda.cpp)
 target_sources(qa PRIVATE include/qa_set.cpp include/qa.cpp include/xos/console.cpp)
-
 target_link_libraries(qa PRIVATE Threads::Threads csv fmt)
 
 add_executable(pi apps/pi.cpp)
@@ -69,6 +72,8 @@ add_executable(variant apps/variant.cpp)
 add_executable(type_erasure apps/type_erasure.cpp)
 
 add_executable(dyno apps/dyno.cpp)
+# dyno header files cause some warnings
+target_compile_options(dyno PRIVATE -Wno-sign-conversion -Wno-implicit-int-conversion -Wno-gnu-string-literal-operator-template)
 target_include_directories(dyno PRIVATE include/dyno/include)
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
@@ -78,6 +83,5 @@ add_executable(mandel apps/mandel.cpp)
 target_link_libraries(mandel PRIVATE sfml-graphics sfml-window sfml-system tbb Threads::Threads)
 
 add_executable(mysql apps/mysql.cpp)
+target_compile_options(mysql PRIVATE -fsanitize=address)
 target_link_libraries(mysql PRIVATE asan mariadbcpp)
-
-
