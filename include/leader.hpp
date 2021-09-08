@@ -20,7 +20,7 @@ public:
 
   std::partial_ordering operator<=>(leader const& rhs) const {
     if (auto c = score_ <=> rhs.score_; !std::is_eq(c)) return c;
-    // must return partial due to this float comparison. Note it is reversed!
+    // must return partial due to this float comparison. Reversed for ascending order!
     return rhs.time_ <=> time_;
   }
 
