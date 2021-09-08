@@ -187,8 +187,6 @@ private:
   }
 
   void add_edge(const edge& e) {
-    if (e.src < 0 || e.src > node_count_ - 1 || e.dest < 0 || e.dest > node_count_ - 1)
-      throw std::logic_error("edge must have nodes in range 0 -> node_count -1");
     adj_list_[e.src].push_back(e);
   }
 
