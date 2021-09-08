@@ -34,7 +34,8 @@ rm -rf build &&                                                \
     cmake -DCMAKE_CXX_COMPILER="$CXX"                          \
           -DCMAKE_C_COMPILER="$CC"                             \
           -DCMAKE_EXPORT_COMPILE_COMMANDS=1                    \
+	  -DCMAKE_BUILD_TYPE=Release                           \
           -B build -S .  &&                                    \
-    cmake --build build
+    cmake --build build -- -j8
 
 cd "$pwd"
