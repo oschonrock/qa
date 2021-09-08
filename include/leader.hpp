@@ -1,7 +1,6 @@
 #include "csv.hpp"
 #include "fmt/format.h"
 #include <compare>
-#include <iomanip>
 #include <string>
 
 class leader {
@@ -14,13 +13,13 @@ public:
   }
 
   static std::string time_to_string(double time) {
-    int                minutes = static_cast<int>(time / 60);
-    double             seconds = time - (60 * minutes);
+    int    minutes = static_cast<int>(time / 60);
+    double seconds = time - (60 * minutes);
     return fmt::format("{:02d}:{:04.1f}", minutes, seconds);
   }
 
   std::partial_ordering operator<=>(leader const& rhs) const {
-    if (std::strong_ordering c = score_ <=> rhs.score_; !std::is_eq(c)) return c;
+    if (auto c = score_ <=> rhs.score_; !std::is_eq(c)) return c;
     // must return partial due to this float comparison. Note it is reversed!
     return rhs.time_ <=> time_;
   }
