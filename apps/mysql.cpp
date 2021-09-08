@@ -1,4 +1,5 @@
 #include "os/bch.hpp"
+#include <cstddef>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
@@ -35,7 +36,7 @@ void updateTaskStatus(std::unique_ptr<sql::Connection>& conn, int id, bool compl
 std::uint64_t lastInsertId(std::unique_ptr<sql::Connection>& conn) {
   std::unique_ptr<sql::Statement> stmnt(conn->createStatement());
 
-  std::unique_ptr<sql::ResultSet> res( stmnt->executeQuery("select last_insert_id()"));
+  std::unique_ptr<sql::ResultSet> res(stmnt->executeQuery("select last_insert_id()"));
   std::uint64_t                   insert_id = 0;
   if (res->next()) {
     insert_id = res->getUInt64(1);
@@ -75,7 +76,6 @@ void showTasks(std::unique_ptr<sql::Connection>& conn) {
   }
 }
 
-// Main Process
 int main(int argc, char* argv[]) {
   std::vector<std::string> args(argv, argv + argc);
 
