@@ -98,7 +98,7 @@ private:
 
 class rectangle : public virtual iface::rectangle, public shape {
 public:
-  explicit rectangle(double width, double height) : width_(width), height_(height){};
+  rectangle(double width, double height) : width_(width), height_(height){};
 
   rectangle& height(double height) override {
     height_ = height;
