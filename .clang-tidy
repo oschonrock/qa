@@ -10,7 +10,9 @@ Checks: '*,-fuchsia*,
 -misc-non-private-member-variables-in-classes,
 -cppcoreguidelines-avoid-magic-numbers,
 -readability-magic-numbers,
--altera-struct-pack-align'
+-altera-struct-pack-align,
+-cppcoreguidelines-non-private-member-variables-in-classes,
+-abseil-string-find-str-contains'
 
 CheckOptions:
   - key:             cppcoreguidelines-special-member-functions.AllowSoleDefaultDtor
