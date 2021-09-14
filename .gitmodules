@@ -22,3 +22,9 @@
 [submodule "include/dyno"]
 	path = include/dyno
 	url = https://github.com/ldionne/dyno.git
+[submodule "compile-time-regular-expressions"]
+	path = compile-time-regular-expressions
+	url = https://github.com/hanickadot/compile-time-regular-expressions.git
+[submodule "include/ctre"]
+	path = include/ctre
+	url = https://github.com/hanickadot/compile-time-regular-expressions.git
