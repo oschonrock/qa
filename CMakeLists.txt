@@ -32,11 +32,23 @@ include(scripts)
 # use Conan configuration if available
 conan_init(cmake)
 
+set(CMAKE_EXE_LINKER_FLAGS    "${CMAKE_EXE_LINKER_FLAGS}    -fuse-ld=lld")
+set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -fuse-ld=lld")
+
 set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+# santiser
+set(CMAKE_CXX_FLAGS_DEBUG          -fsanitize=address,undefined,memory,leak)
+set(CMAKE_CXX_FLAGS_RELWITHDEBINFO -fsanitize=address,undefined,memory,leak)
+set(CMAKE_C_FLAGS_DEBUG            -fsanitize=address,undefined,memory,leak)
+set(CMAKE_C_FLAGS_RELWITHDEBINFO   -fsanitize=address,undefined,memory,leak)
+
 if (MSVC)
-	add_compile_options(-Wall)
+  add_compile_options(/W4)
 else()
-	add_compile_options(-Wall -Wextra -Wpedantic -Wconversion) # -fsanitize=address)
+  add_compile_options(-Wall -Wextra -Wpedantic -Wconversion -Wshadow)
 endif()
 
 find_package(benchmark REQUIRED)
@@ -82,6 +94,18 @@ find_package(Threads REQUIRED)
 add_executable(mandel apps/mandel.cpp)
 target_link_libraries(mandel PRIVATE sfml-graphics sfml-window sfml-system tbb Threads::Threads)
 
-add_executable(mysql apps/mysql.cpp)
-target_compile_options(mysql PRIVATE -fsanitize=address)
-target_link_libraries(mysql PRIVATE asan mariadbcpp)
+add_subdirectory(include/ctre)
+add_library(myslice include/myslice/myslice.cpp
+  include/myslice/table_parse.cpp)
+
+target_include_directories(myslice PRIVATE /usr/include/mariadb)
+target_link_libraries(myslice PRIVATE fmt ctre mariadb)
+
+add_executable(myslice_demo apps/myslice_demo.cpp)
+target_include_directories(myslice_demo PRIVATE /usr/include/mariadb)
+target_link_libraries(myslice_demo PRIVATE myslice)
+add_custom_command(
+  TARGET myslice POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy
+  ${CMAKE_SOURCE_DIR}/apps/myslice_demo.ini
+  ${CMAKE_CURRENT_BINARY_DIR}/bin/myslice_demo.ini)
