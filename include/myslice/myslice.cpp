@@ -2,17 +2,10 @@
 #include "fmt/core.h"
 #include "mypp/mypp.hpp"
 #include "os/algo.hpp"
-#include "os/bch.hpp"
-#include "os/debug.hpp"
 #include "os/str.hpp"
-#include <cstddef>
-#include <cstdint>
-#include <cstdio>
 #include <cstdlib>
-#include <cstring>
 #include <fstream>
-#include <mariadb/conncpp/ResultSetMetaData.hpp>
-#include <memory>
+#include <iterator>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -35,18 +28,25 @@ void conf_init(const std::string& filename) {
     if (line.empty()) continue;
     auto pieces = os::str::explode("=", line);
     if (pieces.size() != 2)
-      throw std::logic_error("illegal configfile syntax, please use `name=value` on each line");
+      throw std::logic_error("illegal configfile syntax, please use `key=value` on each line");
     auto& key   = pieces[0];
     auto& value = pieces[1];
     os::str::trim(key);
+    if (key.length() == 0)
+      throw std::logic_error("config file key is empty on line: `" + line + "`");
+    if (conf.contains(key))
+      throw std::logic_error("duplicate key error in config file: `" + key + "`");
     os::str::trim(value);
-    conf.emplace(key, value);
+    if (value.length() == 0)
+      throw std::logic_error("config file value is empty on line: `" + line + "`");
+    conf.emplace(std::move(key), std::move(value));
   }
 }
 
 const std::string& conf_get(const std::string& key) {
-  if (!conf.contains(key)) throw std::logic_error("no config value found for `" + key + "`\n");
-  return conf[key];
+  auto it = conf.find(key);
+  if (it == conf.end()) throw std::logic_error("no config value found for `" + key + "`\n");
+  return it->second; // must exist and has lifetime of life of program, so ref is fine
 }
 
 mypp::mysql& con() {
