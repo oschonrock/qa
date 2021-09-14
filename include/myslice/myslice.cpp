@@ -26,11 +26,11 @@ void conf_init(const std::string& filename) {
   for (std::string line; std::getline(configfile, line);) {
     os::str::trim(line);
     if (line.empty()) continue;
-    auto pieces = os::str::explode("=", line);
-    if (pieces.size() != 2)
-      throw std::logic_error("illegal configfile syntax, please use `key=value` on each line");
-    auto& key   = pieces[0];
-    auto& value = pieces[1];
+    auto pos = line.find('=');
+    if (pos == std::string::npos)
+      throw std::logic_error("illegal configfile syntax, please use `name=value` on each line");
+    auto key   = line.substr(0, pos);
+    auto value = line.substr(pos + 1);
     os::str::trim(key);
     if (key.length() == 0)
       throw std::logic_error("config file key is empty on line: `" + line + "`");
@@ -267,8 +267,7 @@ std::vector<std::string> database::tablenames() {
   std::vector<std::string> tablenames;
 
   auto rs = con().query("show tables");
-  for (MYSQL_ROW row = rs.fetch_row(); row != nullptr; row = rs.fetch_row())
-    tablenames.emplace_back(row[0]);
+  for (auto&& row: rs) tablenames.emplace_back(row[0]); // NOLINT ptr arith
   return tablenames;
 }
 
