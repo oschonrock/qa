@@ -49,9 +49,12 @@ else()
   add_compile_options(-Wall -Wextra -Wpedantic -Wconversion -Wshadow -Wextra-semi -Wshadow-field-in-constructor -Wmissing-noreturn -Wunreachable-code-break)
 endif()
 
+# if we want shared libs for some reason
+# option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
+
 find_package(benchmark REQUIRED)
 
-include_directories(include include/toolbelt csv-parser/include)
+include_directories(include include/toolbelt)
 
 add_subdirectory(csv-parser)
 # csv parser throws many sign & conversion errors. also a few shadow warnings

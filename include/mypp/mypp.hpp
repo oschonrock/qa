@@ -75,8 +75,11 @@ private:
 class mysql {
 public:
   mysql() {
-    myp = ::mysql_init(myp);
-    if (myp == nullptr) throw std::logic_error("mysql_init failed");
+    // in a multithreaded environment mysql_library_init should be protected by a mutex
+    if (mysql_library_init(0, nullptr, nullptr) != 0)
+      throw std::logic_error("mysql_library_init failed");
+    mysql_ = ::mysql_init(mysql_);
+    if (mysql_ == nullptr) throw std::logic_error("mysql_init failed");
   }
 
   mysql(const mysql& m) = delete;
@@ -85,25 +88,25 @@ public:
   mysql(mysql&& other) noexcept = default; // needed to init static in con
   mysql& operator=(mysql&& other) noexcept = delete;
 
-  ~mysql() { ::mysql_close(myp); }
+  ~mysql() { ::mysql_close(mysql_); }
 
   void connect(const std::string& host, const std::string& user, const std::string& password,
                const std::string& db, unsigned port = 0, const std::string& socket = "",
                std::uint64_t flags = 0UL) {
 
-    if (::mysql_real_connect(myp, host.c_str(), user.c_str(), password.c_str(), db.c_str(), port,
+    if (::mysql_real_connect(mysql_, host.c_str(), user.c_str(), password.c_str(), db.c_str(), port,
                              socket.c_str(), flags) == nullptr) {
       throw std::logic_error("mysql connect failed");
     }
   }
 
   result query(const std::string& sql) {
-    if (::mysql_query(myp, sql.c_str()) != 0) {
-      throw std::logic_error("mysql query failed: " + std::string(::mysql_error(myp)));
+    if (::mysql_query(mysql_, sql.c_str()) != 0) {
+      throw std::logic_error("mysql query failed: " + std::string(::mysql_error(mysql_)));
     }
-    MYSQL_RES* res = ::mysql_use_result(myp); // don't buffer. it's slightly slower
+    MYSQL_RES* res = ::mysql_use_result(mysql_); // don't buffer. it's slightly slower
     if (res == nullptr) {
-      throw std::logic_error("couldn't get results set: " + std::string(::mysql_error(myp)));
+      throw std::logic_error("couldn't get results set: " + std::string(::mysql_error(mysql_)));
     }
     return result(res);
   }
@@ -138,10 +141,10 @@ public:
     std::string out(len * 2 + 2, '\0');
     out[0] = '\''; // place leading quote
     std::size_t newlen =
-        ::mysql_real_escape_string(myp, &out[1], in, len); // leave leading quote in place
+        ::mysql_real_escape_string(mysql_, &out[1], in, len); // leave leading quote in place
 
     if (newlen == static_cast<std::size_t>(-1)) {
-      throw std::logic_error("mysql_real_escape_string failed: " + std::string(::mysql_error(myp)));
+      throw std::logic_error("mysql_real_escape_string failed: " + std::string(::mysql_error(mysql_)));
     }
     out[newlen + 1] = '\''; // fixup closing quote
     out.erase(newlen + 2);  // trim: checked that new null terminator is placed (libstdc++10)
@@ -149,7 +152,7 @@ public:
   }
 
 private:
-  MYSQL* myp = nullptr;
+  MYSQL* mysql_ = nullptr;
 };
 
 inline std::string quote_identifier(const std::string& identifier) {
