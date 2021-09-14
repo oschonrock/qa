@@ -65,7 +65,8 @@ std::ostream& operator<<(std::ostream& os, const field& f) {
   return os;
 }
 
-// use a std::string as tmp buffer, most values are very small so this is fast
+// use a std::string as tmp buffer, most numeric values are very small so this is fast
+// and a std::string has to be created inside mypp::mysql::quote() anyway
 std::string field::quote(const char* unquoted) const {
   if (unquoted == nullptr) {
     return "NULL";
