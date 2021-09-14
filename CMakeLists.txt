@@ -1,25 +1,3 @@
-# The MIT License (MIT)
-#
-# Copyright (c) 2018 Mateusz Pusz
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
-
 cmake_minimum_required(VERSION 3.15)
 project(qa)
 
@@ -54,7 +32,7 @@ endif()
 
 find_package(benchmark REQUIRED)
 
-include_directories(include include/toolbelt)
+include_directories(include include/toolbelt csv-parser/include)
 
 add_subdirectory(csv-parser)
 # csv parser throws many sign & conversion errors. also a few shadow warnings
@@ -97,10 +75,14 @@ add_executable(mandel apps/mandel.cpp)
 target_link_libraries(mandel PRIVATE sfml-graphics sfml-window sfml-system tbb Threads::Threads)
 
 add_subdirectory(include/ctre)
+add_library(mypp include/mypp/mypp.cpp)
+target_include_directories(mypp PRIVATE /usr/include/mariadb)
+target_link_libraries(mypp PRIVATE mariadb)
+
 add_library(myslice include/myslice/myslice.cpp
   include/myslice/table_parse.cpp)
 target_include_directories(myslice PRIVATE /usr/include/mariadb)
-target_link_libraries(myslice PRIVATE fmt ctre mariadb)
+target_link_libraries(myslice PRIVATE fmt ctre mypp)
 
 add_executable(myslice_demo apps/myslice_demo.cpp)
 target_include_directories(myslice_demo PRIVATE /usr/include/mariadb)

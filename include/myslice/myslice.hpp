@@ -19,9 +19,10 @@ namespace myslice {
 void conf_init(const std::string& filename = "");
 const std::string& conf_get(const std::string& key);
 
-class table;
-
+class field;
 class foreign_key;
+class table;
+class database;
 
 class field {
 public:
@@ -53,7 +54,24 @@ public:
   static const std::unordered_map<std::string_view, qtype>& type_map();
 };
 
-class database;
+class foreign_key {
+public:
+  foreign_key(field& local, field& foreign)
+      : local_field(local), foreign_field(foreign) {
+    local.fk = this;
+  }
+
+  field& local_field;
+  field& foreign_field;
+
+  enum class refoption { restrict, cascade, setnull, noaction, setdefault };
+
+  refoption ondelete = refoption::restrict;
+  refoption onupdate = refoption::restrict;
+
+  friend std::ostream& operator<<(std::ostream& os, const foreign_key& fk);
+  static refoption     get_refoption(const std::string& s);
+};
 
 class table {
 public:
@@ -89,25 +107,6 @@ private:
   std::vector<std::string>  create_lines;
 
   void add_pk_field(field& f);
-};
-
-class foreign_key {
-public:
-  foreign_key(field& local, field& foreign)
-      : local_field(local), foreign_field(foreign) {
-    local.fk = this;
-  }
-
-  field& local_field;
-  field& foreign_field;
-
-  enum class refoption { restrict, cascade, setnull, noaction, setdefault };
-
-  refoption ondelete = refoption::restrict;
-  refoption onupdate = refoption::restrict;
-
-  friend std::ostream& operator<<(std::ostream& os, const foreign_key& fk);
-  static refoption     get_refoption(const std::string& s);
 };
 
 class database {

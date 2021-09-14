@@ -19,7 +19,7 @@ int main(int argc, char* argv[]) {
     {
       os::bch::Timer t1("dump");
       db.dump(std::cout);
-      // db.tables.at("virtual_value").dump(std::cout);
+      // db.tables.at("accounting_group").dump(std::cout);
     }
 
   } catch (const std::logic_error& e) {

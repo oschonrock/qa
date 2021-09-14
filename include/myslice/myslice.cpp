@@ -168,13 +168,15 @@ table::fmap table::field_map(mypp::result& rs) {
 
 void table::dump(std::ostream& os) {
   std::cerr << "dumping `" << name << "`\n";
+
   // dumpCreate();
   // dumpDataPrefix();
-  std::string       sql_prefix   = "INSERT INTO " + mypp::quote_identifier(name) + " VALUES\n";
-  bool              first        = true;
-  std::int64_t      packet_count = 0;
-  std::int64_t      max_allowed_packet = con().get_max_allowed_packet() - 1'000;
-  
+
+  std::string  sql_prefix         = "INSERT INTO " + mypp::quote_identifier(name) + " VALUES\n";
+  bool         first              = true;
+  std::int64_t packet_count       = 0;
+  std::int64_t max_allowed_packet = con().get_max_allowed_packet() - 1'000;
+
   auto rs = con().query("select * from " + mypp::quote_identifier(name));
   auto fm = field_map(rs);
 
@@ -270,7 +272,7 @@ std::vector<std::string> database::tablenames() {
   std::vector<std::string> tablenames;
 
   auto rs = con().query("show tables");
-  for (auto&& row: rs) tablenames.emplace_back(row[0]); // NOLINT ptr arith
+  for (auto&& row: rs) tablenames.emplace_back(row[0]);
   return tablenames;
 }
 
