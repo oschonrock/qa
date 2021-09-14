@@ -13,13 +13,10 @@ enum class color : int { red, green, blue };
 constexpr std::array<std::string_view, 3> color_str{"red", "green", "blue"};
 
 // Define the interface of something on which we can call 'area()'.
-struct Shape
-    : decltype(dyno::requires_("area"_s  = dyno::method<double() const>,
-                               "scale"_s = dyno::method<void(double)>,
-                               "color"_s = dyno::method<void(enum color)>,
-                               dyno::CopyConstructible{},
-                               dyno::MoveConstructible{},
-                               dyno::Destructible{})) {};
+struct Shape : decltype(dyno::requires_(
+                   "area"_s = dyno::method<double() const>, "scale"_s = dyno::method<void(double)>,
+                   "color"_s = dyno::method<void(enum color)>, dyno::CopyConstructible{},
+                   dyno::MoveConstructible{}, dyno::Destructible{})) {};
 
 // Define how concrete types can fulfill that interface
 template <typename T>
@@ -38,7 +35,7 @@ struct shape {
     poly_.virtual_("scale"_s)(sf);
     return *this; // fluid API
   }
-  shape&               color(enum color col) {
+  shape& color(enum color col) {
     poly_.virtual_("color"_s)(col);
     return *this; // fluid API
   }
@@ -70,7 +67,7 @@ public:
   [[nodiscard]] std::string_view color_str() const { return ::color_str[static_cast<int>(col_)]; }
   [[nodiscard]] std::string      name() const { return "square width " + std::to_string(width_); }
   [[nodiscard]] double           area() const { return width_ * width_; }
-  [[nodiscard]] double           width() const { return width_; };
+  [[nodiscard]] double           width() const { return width_; }
 
 private:
   enum color col_ = color::red;
@@ -79,7 +76,7 @@ private:
 
 class rectangle {
 public:
-  explicit rectangle(double width, double height) : width_(width), height_(height){};
+  explicit rectangle(double width, double height) : width_(width), height_(height) {}
 
   rectangle& color(color color) {
     col_ = color;
@@ -89,12 +86,12 @@ public:
   rectangle& height(double height) {
     height_ = height;
     return *this;
-  };
+  }
 
   rectangle& width(double width) {
     width_ = width;
     return *this;
-  };
+  }
 
   rectangle& scale(double factor) {
     width_ *= factor;
@@ -109,8 +106,8 @@ public:
     return "rectangle " + std::to_string(width_) + " x " + std::to_string(height_);
   }
   [[nodiscard]] double area() const { return width_ * height_; }
-  [[nodiscard]] double width() const { return width_; };
-  [[nodiscard]] double height() const { return height_; };
+  [[nodiscard]] double width() const { return width_; }
+  [[nodiscard]] double height() const { return height_; }
 
 private:
   enum color col_ = color::red;
@@ -120,7 +117,7 @@ private:
 
 class circle {
 public:
-  explicit circle(double radius) : radius_(radius){};
+  explicit circle(double radius) : radius_(radius) {}
 
   circle& color(color color) {
     col_ = color;
@@ -135,13 +132,13 @@ public:
   circle& radius(double radius) {
     radius_ = radius;
     return *this;
-  };
+  }
 
   [[nodiscard]] enum color       color() const { return col_; }
   [[nodiscard]] std::string_view color_str() const { return ::color_str[static_cast<int>(col_)]; }
   [[nodiscard]] std::string      name() const { return "circle radius " + std::to_string(radius_); }
   [[nodiscard]] double           area() const { return M_PI * radius_ * radius_; }
-  [[nodiscard]] double           radius() const { return radius_; };
+  [[nodiscard]] double           radius() const { return radius_; }
 
 private:
   enum color col_ = color::red;

@@ -34,7 +34,7 @@ rm -rf build &&                                                \
     cmake -DCMAKE_CXX_COMPILER="$CXX"                          \
           -DCMAKE_C_COMPILER="$CC"                             \
           -DCMAKE_EXPORT_COMPILE_COMMANDS=1                    \
-	  -DCMAKE_BUILD_TYPE=Release                           \
+	  -DCMAKE_BUILD_TYPE=RelWithDebInfo                \
           -B build -S .  &&                                    \
     cmake --build build -- -j8
 

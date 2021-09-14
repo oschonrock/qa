@@ -25,7 +25,7 @@ class foreign_key;
 
 class field {
 public:
-  field(table& table, std::string fieldname) : table(&table), name(std::move(fieldname)) {}
+  field(table& t, std::string fieldname) : table(&t), name(std::move(fieldname)) {}
 
   table*       table;
   foreign_key* fk = nullptr;
@@ -57,7 +57,7 @@ class database;
 
 class table {
 public:
-  explicit table(database& db, std::string name) : db(&db), name(std::move(name)) {}
+  explicit table(database& database, std::string tablename) : db(&database), name(std::move(tablename)) {}
 
   database*   db;
   std::string name;
@@ -85,8 +85,6 @@ public:
   friend std::ostream& operator<<(std::ostream& os, const table& t);
 
 private:
-  static constexpr std::int64_t max_allowed_packet = 16 * 1024 * 1024 - 1000;
-
   std::vector<std::string>& get_create_lines();
   std::vector<std::string>  create_lines;
 
@@ -95,9 +93,9 @@ private:
 
 class foreign_key {
 public:
-  foreign_key(field& local_field, field& foreign_field)
-      : local_field(local_field), foreign_field(foreign_field) {
-    local_field.fk = this;
+  foreign_key(field& local, field& foreign)
+      : local_field(local), foreign_field(foreign) {
+    local.fk = this;
   }
 
   field& local_field;

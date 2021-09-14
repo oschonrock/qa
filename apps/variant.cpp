@@ -48,7 +48,7 @@ public:
   }
   [[nodiscard]] static std::string name() { return "square"; }
   [[nodiscard]] double             area() const { return width_ * width_; }
-  [[nodiscard]] double             width() const { return width_; };
+  [[nodiscard]] double             width() const { return width_; }
 
 private:
   enum color col_ = color::red;
@@ -57,7 +57,7 @@ private:
 
 class rectangle {
 public:
-  explicit rectangle(double width, double height) : width_(width), height_(height){};
+  explicit rectangle(double width, double height) : width_(width), height_(height) {}
 
   rectangle& color(color color) {
     col_ = color;
@@ -67,12 +67,12 @@ public:
   rectangle& height(double height) {
     height_ = height;
     return *this;
-  };
+  }
 
   rectangle& width(double width) {
     width_ = width;
     return *this;
-  };
+  }
 
   rectangle& scale(double factor) {
     width_ *= factor;
@@ -87,8 +87,8 @@ public:
 
   [[nodiscard]] static std::string name() { return "rectangle"; }
   [[nodiscard]] double             area() const { return width_ * height_; }
-  [[nodiscard]] double             width() const { return width_; };
-  [[nodiscard]] double             height() const { return height_; };
+  [[nodiscard]] double             width() const { return width_; }
+  [[nodiscard]] double             height() const { return height_; }
 
 private:
   enum color col_ = color::red;
@@ -98,7 +98,7 @@ private:
 
 class circle {
 public:
-  explicit circle(double radius) : radius_(radius){};
+  explicit circle(double radius) : radius_(radius) {}
 
   circle& color(color color) {
     col_ = color;
@@ -113,7 +113,7 @@ public:
   circle& radius(double radius) {
     radius_ = radius;
     return *this;
-  };
+  }
 
   [[nodiscard]] enum color       color() const { return col_; }
   [[nodiscard]] std::string_view color_str() const {
@@ -121,7 +121,7 @@ public:
   }
   [[nodiscard]] static std::string name() { return "circle"; }
   [[nodiscard]] double             area() const { return M_PI * radius_ * radius_; }
-  [[nodiscard]] double             radius() const { return radius_; };
+  [[nodiscard]] double             radius() const { return radius_; }
 
 private:
   enum color col_ = color::red;

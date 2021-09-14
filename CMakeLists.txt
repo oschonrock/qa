@@ -32,23 +32,21 @@ include(scripts)
 # use Conan configuration if available
 conan_init(cmake)
 
-set(CMAKE_EXE_LINKER_FLAGS    "${CMAKE_EXE_LINKER_FLAGS}    -fuse-ld=lld")
-set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -fuse-ld=lld")
+string(APPEND CMAKE_EXE_LINKER_FLAGS " -fuse-ld=lld")
+string(APPEND CMAKE_SHARED_LINKER_FLAGS " -fuse-ld=lld")
+string(APPEND CMAKE_MODULE_LINKER_FLAGS " -fuse-ld=lld")
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# santiser
-set(CMAKE_CXX_FLAGS_DEBUG          -fsanitize=address,undefined,memory,leak)
-set(CMAKE_CXX_FLAGS_RELWITHDEBINFO -fsanitize=address,undefined,memory,leak)
-set(CMAKE_C_FLAGS_DEBUG            -fsanitize=address,undefined,memory,leak)
-set(CMAKE_C_FLAGS_RELWITHDEBINFO   -fsanitize=address,undefined,memory,leak)
+string(APPEND CMAKE_CXX_FLAGS_DEBUG          " -fsanitize=address,undefined,leak")
+string(APPEND CMAKE_CXX_FLAGS_RELWITHDEBINFO " -fsanitize=address,undefined,leak")
 
 if (MSVC)
   add_compile_options(/W4)
 else()
-  add_compile_options(-Wall -Wextra -Wpedantic -Wconversion -Wshadow)
+  add_compile_options(-Wall -Wextra -Wpedantic -Wconversion -Wshadow -Wextra-semi -Wshadow-field-in-constructor -Wmissing-noreturn -Wunreachable-code-break)
 endif()
 
 find_package(benchmark REQUIRED)
@@ -56,8 +54,8 @@ find_package(benchmark REQUIRED)
 include_directories(include include/toolbelt csv-parser/include)
 
 add_subdirectory(csv-parser)
-# csv parser throws many sign & conversion errors
-target_compile_options(csv PUBLIC -Wno-sign-conversion -Wno-implicit-int-float-conversion -Wno-float-conversion -Wno-shorten-64-to-32)
+# csv parser throws many sign & conversion errors. also a few shadow warnings
+target_compile_options(csv PUBLIC -Wno-sign-conversion -Wno-implicit-int-float-conversion -Wno-float-conversion -Wno-shorten-64-to-32 -Wno-shadow -Wno-extra-semi)
 target_compile_options(csv_info PRIVATE -Wno-sign-conversion)
 target_compile_options(csv_stats PRIVATE -Wno-sign-conversion)
 add_executable(qa apps/qanda.cpp)
@@ -75,6 +73,7 @@ target_link_libraries(visitor benchmark::benchmark)
 add_subdirectory(include/fmt)
 add_executable(word_count apps/word_count.cpp)
 target_link_libraries(word_count PRIVATE fmt)
+target_compile_options(fmt PUBLIC -Wno-missing-noreturn)
 
 add_executable(wgraph apps/wgraph.cpp)
 add_executable(move_copy_sem apps/move_copy_sem.cpp)
@@ -97,7 +96,6 @@ target_link_libraries(mandel PRIVATE sfml-graphics sfml-window sfml-system tbb T
 add_subdirectory(include/ctre)
 add_library(myslice include/myslice/myslice.cpp
   include/myslice/table_parse.cpp)
-
 target_include_directories(myslice PRIVATE /usr/include/mariadb)
 target_link_libraries(myslice PRIVATE fmt ctre mariadb)
 

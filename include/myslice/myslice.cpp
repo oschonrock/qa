@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <fstream>
 #include <iterator>
+#include <locale>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -31,20 +32,23 @@ void conf_init(const std::string& filename) {
       throw std::logic_error("illegal configfile syntax, please use `name=value` on each line");
     auto key   = line.substr(0, pos);
     auto value = line.substr(pos + 1);
+
     os::str::trim(key);
     if (key.length() == 0)
       throw std::logic_error("config file key is empty on line: `" + line + "`");
     if (conf.contains(key))
       throw std::logic_error("duplicate key error in config file: `" + key + "`");
+
     os::str::trim(value);
     if (value.length() == 0)
       throw std::logic_error("config file value is empty on line: `" + line + "`");
+
     conf.emplace(std::move(key), std::move(value));
   }
 }
 
 const std::string& conf_get(const std::string& key) {
-  auto it = conf.find(key);
+  auto it = conf.find(key); // using .contains() would mean 2 hash lookups
   if (it == conf.end()) throw std::logic_error("no config value found for `" + key + "`\n");
   return it->second; // must exist and has lifetime of life of program, so ref is fine
 }
@@ -74,10 +78,8 @@ std::string field::quote(const char* unquoted) const {
   switch (quoting_type) {
   case field::qtype::string:
     return con().quote(unquoted);
-    break;
   case field::qtype::numeric:
     return unquoted;
-    break;
   }
 }
 
@@ -168,13 +170,14 @@ void table::dump(std::ostream& os) {
   std::cerr << "dumping `" << name << "`\n";
   // dumpCreate();
   // dumpDataPrefix();
-
-  auto rs = con().query("select * from " + mypp::quote_identifier(name));
-  auto fm = field_map(rs);
-
   std::string       sql_prefix   = "INSERT INTO " + mypp::quote_identifier(name) + " VALUES\n";
   bool              first        = true;
   std::int64_t      packet_count = 0;
+  std::int64_t      max_allowed_packet = con().get_max_allowed_packet() - 1'000;
+  
+  auto rs = con().query("select * from " + mypp::quote_identifier(name));
+  auto fm = field_map(rs);
+
   std::stringstream row_sql;
   for (auto&& row: rs) {
     if (first) {

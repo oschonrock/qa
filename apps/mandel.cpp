@@ -42,7 +42,7 @@ struct Settings {
 
   static constexpr int min_loop_ms = 20;
 
-  explicit Settings(bool first_run = false) : first_run(first_run) {}
+  explicit Settings(bool first_run_ = false) : first_run(first_run_) {}
 
   constexpr bool operator==(const Settings& o) const {
     return size == o.size && center == o.center && x_scale == o.x_scale && y_scale == o.y_scale &&

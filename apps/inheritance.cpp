@@ -88,7 +88,7 @@ public:
     return "square width " + std::to_string(width_);
   }
   [[nodiscard]] double area() const override { return width_ * width_; }
-  [[nodiscard]] double width() const override { return width_; };
+  [[nodiscard]] double width() const override { return width_; }
 
 private:
   double width_;
@@ -96,17 +96,17 @@ private:
 
 class rectangle : public virtual iface::rectangle, public shape {
 public:
-  explicit rectangle(double width, double height) : width_(width), height_(height){};
+  explicit rectangle(double width, double height) : width_(width), height_(height) {}
 
   rectangle& height(double height) override {
     height_ = height;
     return *this;
-  };
+  }
 
   rectangle& width(double width) override {
     width_ = width;
     return *this;
-  };
+  }
 
   rectangle& scale(double factor) override {
     width_ *= factor;
@@ -118,8 +118,8 @@ public:
     return "rectangle " + std::to_string(width_) + " x " + std::to_string(height_);
   }
   [[nodiscard]] double area() const override { return width_ * height_; }
-  [[nodiscard]] double width() const override { return width_; };
-  [[nodiscard]] double height() const override { return height_; };
+  [[nodiscard]] double width() const override { return width_; }
+  [[nodiscard]] double height() const override { return height_; }
 
 private:
   double width_;
@@ -128,7 +128,7 @@ private:
 
 class circle : public virtual iface::circle, public shape {
 public:
-  explicit circle(double radius) : radius_(radius){};
+  explicit circle(double radius) : radius_(radius) {}
 
   circle& scale(double factor) override {
     radius_ *= factor;
@@ -138,13 +138,13 @@ public:
   circle& radius(double radius) override {
     radius_ = radius;
     return *this;
-  };
+  }
 
   [[nodiscard]] std::string name() const override {
     return "circle radius " + std::to_string(radius_);
   }
   [[nodiscard]] double area() const override { return M_PI * radius_ * radius_; }
-  [[nodiscard]] double radius() const override { return radius_; };
+  [[nodiscard]] double radius() const override { return radius_; }
 
 private:
   double radius_;

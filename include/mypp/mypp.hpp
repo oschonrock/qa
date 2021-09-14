@@ -13,7 +13,7 @@ namespace mypp {
 
 class result {
 public:
-  explicit result(MYSQL_RES* result) : myr(result){};
+  explicit result(MYSQL_RES* result) : myr(result) {}
 
   result(const result& m) = delete;
   result& operator=(const result& other) = delete;
@@ -57,8 +57,8 @@ public:
       ++(*this);
       return tmp;
     }
-    bool operator==(const Iterator& rhs) const { return currow_ == rhs.currow_; };
-    bool operator!=(const Iterator& b) const { return currow_ != b.currow_; };
+    bool operator==(const Iterator& rhs) const { return currow_ == rhs.currow_; }
+    bool operator!=(const Iterator& b) const { return currow_ != b.currow_; }
 
   private:
     result&   result_;
@@ -77,7 +77,7 @@ public:
   mysql() {
     myp = ::mysql_init(myp);
     if (myp == nullptr) throw std::logic_error("mysql_init failed");
-  };
+  }
 
   mysql(const mysql& m) = delete;
   mysql& operator=(const mysql& other) = delete;
@@ -92,7 +92,7 @@ public:
                std::uint64_t flags = 0UL) {
 
     if (::mysql_real_connect(myp, host.c_str(), user.c_str(), password.c_str(), db.c_str(), port,
-                           socket.c_str(), flags) == nullptr) {
+                             socket.c_str(), flags) == nullptr) {
       throw std::logic_error("mysql connect failed");
     }
   }
@@ -106,6 +106,30 @@ public:
       throw std::logic_error("couldn't get results set: " + std::string(::mysql_error(myp)));
     }
     return result(res);
+  }
+
+  // throws if row not found
+  std::vector<std::string> single_row(const std::string& sql) {
+    auto      rs  = query(sql);
+    MYSQL_ROW row = rs.fetch_row();
+    if (row == nullptr) throw std::logic_error("single row not found by: " + sql);
+    // must take copy in vector to avoid lifetime issues
+    return std::vector<std::string>(row, row + rs.num_fields());
+  }
+
+  std::string single_value(const std::string& sql, unsigned col = 0) {
+    auto      rs  = query(sql);
+    MYSQL_ROW row = rs.fetch_row();
+    if (row == nullptr) throw std::logic_error("single row not found by: " + sql);
+    if (rs.num_fields() < col + 1)
+      throw std::logic_error("column " + std::to_string(col) + " not found");
+    return row[col]; // take copy as std::string
+  }
+
+  std::int64_t get_max_allowed_packet() {
+    static std::int64_t max_allowed_packet =
+        std::stol(single_value("show variables like 'max_allowed_packet'", 1));
+    return max_allowed_packet;
   }
 
   std::string quote(const char* in) {
