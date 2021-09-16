@@ -79,6 +79,7 @@ target_link_libraries(mandel PRIVATE sfml-graphics sfml-window sfml-system tbb T
 add_library(mypp include/mypp/mypp.cpp)
 target_include_directories(mypp PRIVATE /usr/include/mariadb)
 target_link_libraries(mypp PRIVATE mariadb)
+target_compile_options(mypp PUBLIC -Wno-missing-noreturn)
 
 add_subdirectory(include/ctre)
 add_library(myslice include/myslice/myslice.cpp
@@ -89,6 +90,8 @@ target_link_libraries(myslice PRIVATE fmt ctre mypp)
 add_executable(myslice_demo apps/myslice_demo.cpp)
 target_include_directories(myslice_demo PRIVATE /usr/include/mariadb)
 target_link_libraries(myslice_demo PRIVATE myslice mypp)
+target_compile_options(myslice_demo PUBLIC -Wno-missing-noreturn)
+
 add_custom_command(
   TARGET myslice POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy
