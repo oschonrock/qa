@@ -1,16 +1,20 @@
 #include "myslice.hpp"
+#include "fmt/chrono.h"
 #include "fmt/core.h"
 #include "mypp/mypp.hpp"
 #include "os/algo.hpp"
 #include "os/str.hpp"
+#include <cstdint>
 #include <cstdlib>
 #include <fstream>
 #include <iterator>
-#include <locale>
+#include <optional>
+#include <ostream>
 #include <sstream>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 
 namespace myslice {
 
@@ -56,8 +60,14 @@ const std::string& conf_get(const std::string& key) {
 mypp::mysql& con() {
   static auto con = []() {
     mypp::mysql my;
-    my.connect(conf_get("db_host"), conf_get("db_user"), conf_get("db_pass"), conf_get("db_db"),
-               static_cast<unsigned>(std::stoi(conf_get("db_port"))), conf_get("db_socket"));
+    // clang-format off
+    my.connect(conf_get("db_host"),
+               conf_get("db_user"),
+               conf_get("db_pass"),
+               conf_get("db_db"),
+               static_cast<unsigned>(std::stoi(conf_get("db_port"))),
+               conf_get("db_socket"));
+    // clang-format on
     return my;
   }();
   return con;
@@ -72,9 +82,14 @@ std::ostream& operator<<(std::ostream& os, const field& f) {
 // use a std::string as tmp buffer, most numeric values are very small so this is fast
 // and a std::string has to be created inside mypp::mysql::quote() anyway
 std::string field::quote(const char* unquoted) const {
-  if (unquoted == nullptr) {
-    return "NULL";
-  }
+
+  if (unquoted == nullptr) return "NULL";
+
+  if (nullable && fk != nullptr &&
+      fk->foreign_field.restricted_values &&
+      !fk->foreign_field.restricted_values->contains(std::stoi(unquoted)))
+    return "NULL"; // maintain referential intergrity
+
   switch (quoting_type) {
   case field::qtype::string:
     return con().quote(unquoted);
@@ -129,15 +144,20 @@ foreign_key& table::add_foreign_key(field& local_field, field& foreign_field) {
 }
 
 std::ostream& operator<<(std::ostream& os, const table& t) {
-  os << "\n\nTable: " << t.name << "\n\n";
-  for (auto&& f: t.field_list) os << *f << "\n";
-  if (!t.foreign_keys.empty()) {
+  os << t.name;
+  return os;
+}
+
+std::ostream& table::vprint(std::ostream& os) {
+  os << "\n\nTable: " << name << "\n\n";
+  for (auto&& f: field_list) os << *f << "\n";
+  if (!foreign_keys.empty()) {
     os << "\n";
-    for (auto&& fk: t.foreign_keys) os << fk << "\n";
+    for (auto&& fk: foreign_keys) os << fk << "\n";
   }
-  if (!t.referencing_fks.empty()) {
+  if (!referencing_fks.empty()) {
     os << "\n";
-    for (foreign_key* fk: t.referencing_fks) os << *fk << "\n";
+    for (foreign_key* fk: referencing_fks) os << *fk << "\n";
   }
   return os;
 }
@@ -166,22 +186,170 @@ table::fmap table::field_map(mypp::result& rs) {
   return fm;
 }
 
-void table::dump(std::ostream& os) {
-  std::cerr << "dumping `" << name << "`\n";
+field& table::pk_field() const {
+  if (pk_fields.size() != 1)
+    throw std::logic_error("must have exactly one pk field to call mypp::table::get_pk_field()");
+  return *pk_fields[0];
+}
 
-  // dumpCreate();
-  // dumpDataPrefix();
+void table::limit_pks(const std::unordered_set<int>& pk_values, const std::string& trigger) {
+  ++db->restrict_count;
+  std::cerr << "Notice: Table: " << *this << ": " << db->restrict_count << ": limited to "
+            << pk_values.size() << " rows. Trigger: " << trigger << "\n";
+
+  auto& pk = pk_field();
+  if (pk.restrict(pk_values))
+    // only recheck the foreign keys if we have been asked to by Field::restrict()
+    for (auto&& fk: referencing_fks) fk->local_field.restrict(pk_values);
+
+  // if the recursion above has succeeded then this table now has limited records
+}
+
+bool field::is_pk() const {
+  return std::find(table->pk_fields.begin(), table->pk_fields.end(), this) !=
+         table->pk_fields.end();
+}
+
+std::unordered_set<int> intersect(const std::unordered_set<int>& s1,
+                                  const std::unordered_set<int>& s2) {
+  auto [l, r] = [&]() {
+    if (s1.size() < s2.size()) return std::tie(s1, s2);
+    return std::tie(s2, s1);
+  }();
+
+  std::unordered_set<int> result;
+  result.reserve(l.size());
+
+  for (const auto& v: l)
+    if (auto i = r.find(v); i != r.end()) result.insert(v);
+
+  return result;
+}
+
+std::string field::sql_where_clause(const std::unordered_set<int>& values) const {
+  if (values.empty()) return " false ";
+  std::stringstream s;
+  s << mypp::quote_identifier(name) << " IN (" << os::str::join(values, ",") << ") ";
+  return s.str();
+}
+
+bool field::restrict(const std::unordered_set<int>& values) {
+  if (is_pk()) {
+    if (restricted_values.has_value()) {
+      // is already restricted..merging and reporting whether we need to re-recurse
+      auto new_restricted_values = intersect(*restricted_values, values);
+
+      if (new_restricted_values.size() == restricted_values->size())
+        return false; // not changed, stop recursing
+
+      restricted_values = std::move(new_restricted_values);
+    } else {
+      // first time a restriction is being applied
+      restricted_values = values;
+    }
+  } else {
+    // convert this non-primary key restriction into a pk one
+    // by recursing
+
+    // TODO(oliver): not yet dealing with FKs which are nullable on
+    // the child side have tried adding "or is null" below, but this
+    // recurses and grows the parent object sets need some extra check
+    // to "not grow the allowable PK set under certain circumstances".
+    // right now this will just give us a smaller db than perhaps
+    // intended, which is not all bad
+
+    // here is an attempt
+    if (nullable) {
+      // if we we left this, it would be set NULL during dump,
+      // effectively creating an orphan by default we will remove
+      // orphans there is a system of db/table/field defaults to
+      // control this behaviour
+      if (expunge_orphans_) {
+        table->limit(sql_where_clause(values), os::str::stringify(*this));
+      }
+    } else {
+      // if no option for null we really have to continue recursing
+      table->limit(sql_where_clause(values), os::str::stringify(*this));
+    }
+  }
+  return true;
+}
+
+bool field::get_expunge_orphans() const {
+  return expunge_orphans_.value_or(table->get_expunge_orphans());
+}
+
+bool table::get_expunge_orphans() const { return expunge_orphans_.value_or(db->expunge_orphans); }
+
+std::unordered_set<int> table::limited_pks(const std::string& sql_limiting_clause,
+                                           const std::string& order_by,
+                                           const std::string& limit) const {
+  auto pk = pk_field();
+
+  std::string sql = "select " + mypp::quote_identifier(pk.name) + " from " +
+                    mypp::quote_identifier(name) + " where " + sql_limiting_clause;
+
+  if (!order_by.empty()) sql += " order by " + order_by;
+  if (!limit.empty()) sql += " limit " + limit;
+
+  auto rs = con().query(sql);
+
+  std::unordered_set<int> pks;
+  for (auto&& row: rs) pks.insert(std::stoi(row[0]));
+
+  return pks;
+}
+
+void table::limit(const std::string& sql_limiting_clause, const std::string& trigger) {
+  try {
+    auto pk_values = limited_pks(sql_limiting_clause);
+    limit_pks(pk_values, trigger);
+  } catch (const std::logic_error& e) {
+    std::cerr << "Warning: Table: " << os::str::stringify(*this)
+              << ": could not convert sql_limiting_clause = '" << sql_limiting_clause
+              << "' into a set of limited PKs. Table has more than 1 PK? " << e.what() << "\n";
+  }
+}
+
+bool table::is_ltd_by_pks() const {
+  try {
+    auto& pk = pk_field();
+    return pk.restricted_values.has_value();
+  } catch (const std::logic_error& e) {
+    // unable to get a singular PK field, so a restriction is not supported and hence cannot be
+    // restricted
+    return false;
+  }
+}
+
+mypp::result table::pk_ltd_rs() const {
+  std::string sql = "select * from " + mypp::quote_identifier(name);
+
+  if (is_ltd_by_pks()) {
+    auto& pk = pk_field();
+    sql += " where " + pk.sql_where_clause(*pk.restricted_values);
+  }
+  return con().query(sql);
+}
+
+void table::dump(std::ostream& os) {
+  std::cerr << fmt::format("dumping `{:25s}`", name);
+
+  dump_create(os);
+  dump_data_prefix(os);
 
   std::string  sql_prefix         = "INSERT INTO " + mypp::quote_identifier(name) + " VALUES\n";
   bool         first              = true;
   std::int64_t packet_count       = 0;
   std::int64_t max_allowed_packet = con().get_max_allowed_packet() - 1'000;
 
-  auto rs = con().query("select * from " + mypp::quote_identifier(name));
+  auto rs = pk_ltd_rs();
   auto fm = field_map(rs);
 
   std::stringstream row_sql;
+  std::int64_t rowcount = 0;
   for (auto&& row: rs) {
+    ++rowcount;
     if (first) {
       os << sql_prefix;
       packet_count = static_cast<std::int64_t>(sql_prefix.size());
@@ -191,7 +359,7 @@ void table::dump(std::ostream& os) {
     row_sql.clear();
     row_sql << "(";
     for (auto&& [i, f]: fm) {
-      row_sql << f->quote(row[i]); // NOLINT ptr arith.
+      row_sql << f->quote(row[i]);
       if (i == fm.size() - 1)
         row_sql << ")";
       else
@@ -214,8 +382,9 @@ void table::dump(std::ostream& os) {
   if (!first) {
     os << ";\n"; // finish any packet which was started
   }
+  std::cerr << fmt::format("{:12d} Rows", rowcount) << "\n";
 
-  // dumpDataPostfix();
+  dump_data_postfix(os);
   // std::cerr << " " . number_format(microtime(true) - start, 3) . "\n");
 }
 
@@ -255,12 +424,48 @@ table& database::goc_table(const std::string& tablename, bool force) {
 void database::parse_tables() {
   for (auto&& tablename: tablenames()) goc_table(tablename); // this will recurse
   // fix order which was determined by the recursion
-  std::sort(begin(table_list), end(table_list),
+  std::sort(std::begin(table_list), std::end(table_list),
             [](table* a, table* b) { return a->name < b->name; }); // NOLINT nullptr??
 }
 
 void database::dump(std::ostream& os) {
+  // clang-format off
+    os << R"(-- Myslice Dump
+--
+-- Host: )" << conf_get("db_host") << R"(    Database: )" << conf_get("db_db") << R"(
+-- ------------------------------------------------------
+-- Server version )" << con().single_value("show variables like 'version'", 1) << R"(
+
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!40101 SET NAMES utf8 */;
+/*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
+/*!40103 SET TIME_ZONE='+00:00' */;
+/*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
+/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
+/*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
+/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
+)";
+  // clang-format on
+
   for (auto&& t: table_list) t->dump(os);
+
+  // clang-format off
+  os << R"(/*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
+
+/*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
+/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
+/*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
+
+-- Dump completed on )"
+     << fmt::format("{:%Y-%m-%d %H:i:s}", fmt::localtime(std::time(nullptr))) << R"(
+)";
+  // clang-format on
 }
 
 std::ostream& operator<<(std::ostream& os, const database& db) {
@@ -274,6 +479,44 @@ std::vector<std::string> database::tablenames() {
   auto rs = con().query("show tables");
   for (auto&& row: rs) tablenames.emplace_back(row[0]);
   return tablenames;
+}
+
+void table::dump_create(std::ostream& os) {
+  // clang-format off
+  os << R"(
+--
+-- Table structure for table )" << mypp::quote_identifier(name) <<  R"(
+--
+
+DROP TABLE IF EXISTS )" << mypp::quote_identifier(name) <<  R"(;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+)";
+  // clang-format on
+  os << os::str::join(get_create_lines(), "\n") << ";\n"
+     << R"(/*!40101 SET character_set_client = @saved_cs_client */;)"
+     << "\n";
+}
+
+void table::dump_data_prefix(std::ostream& os) const {
+  // clang-format off
+  os << R"(
+--
+-- Dumping data for table )" << mypp::quote_identifier(name) <<  R"(
+--
+
+LOCK TABLES )" << mypp::quote_identifier(name) << R"( WRITE;
+/*!40000 ALTER TABLE )" << mypp::quote_identifier(name) << R"( DISABLE KEYS */;
+)";
+  // clang-format on
+}
+
+void table::dump_data_postfix(std::ostream& os) const {
+  // clang-format off
+  os << R"(/*!40000 ALTER TABLE )" << mypp::quote_identifier(name) << R"( ENABLE KEYS */;
+UNLOCK TABLES;
+)";
+  // clang-format on
 }
 
 } // namespace myslice

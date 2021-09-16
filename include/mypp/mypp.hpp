@@ -15,6 +15,8 @@ class mysql;
 class result;
 class row;
 
+mypp::mysql& con();
+
 // representing a mysql/mariadb connection handle. Wrapper for MYSQL*
 class mysql {
 public:
@@ -32,7 +34,7 @@ public:
                const std::string& db, unsigned port = 0, const std::string& socket = "",
                std::uint64_t flags = 0UL);
 
-  result                   query(const std::string& sql);
+  result                   query(const std::string& sql, bool expect_result = true);
   std::vector<std::string> single_row(const std::string& sql); // throws if row not found
   std::string              single_value(const std::string& sql, unsigned col = 0);
   std::int64_t             get_max_allowed_packet();

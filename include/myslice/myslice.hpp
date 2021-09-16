@@ -16,13 +16,15 @@
 
 namespace myslice {
 
-void conf_init(const std::string& filename = "");
+void               conf_init(const std::string& filename = "");
 const std::string& conf_get(const std::string& key);
 
 class field;
 class foreign_key;
 class table;
 class database;
+
+mypp::mysql& con();
 
 class field {
 public:
@@ -32,8 +34,8 @@ public:
   foreign_key* fk = nullptr;
   std::string  name;
 
-  std::unordered_set<uint64_t> restricted_values;
-  std::unordered_set<uint64_t> allowed_keys;
+  // and int is 32bits on all modern platforms, which matches mysql INT(11)
+  std::optional<std::unordered_set<int>> restricted_values;
 
   std::string type;
 
@@ -46,18 +48,24 @@ public:
   bool pk       = false;
   bool nullable = false;
 
-  std::optional<bool> expunge_orphans;
-
+  bool restrict(const std::unordered_set<int>& values);
+  bool                 is_pk() const;
+  std::string          sql_where_clause(const std::unordered_set<int>& values) const;
   std::string          quote(const char* unquoted) const;
   std::ostream&        vprint(std::ostream& os);
   friend std::ostream& operator<<(std::ostream& os, const field& f);
   static const std::unordered_map<std::string_view, qtype>& type_map();
+
+  void set_expunge_orphans(bool val) { expunge_orphans_ = val; }
+  bool get_expunge_orphans() const;
+
+private:
+  std::optional<bool> expunge_orphans_;
 };
 
 class foreign_key {
 public:
-  foreign_key(field& local, field& foreign)
-      : local_field(local), foreign_field(foreign) {
+  foreign_key(field& local, field& foreign) : local_field(local), foreign_field(foreign) {
     local.fk = this;
   }
 
@@ -75,7 +83,8 @@ public:
 
 class table {
 public:
-  explicit table(database& database, std::string tablename) : db(&database), name(std::move(tablename)) {}
+  explicit table(database& database, std::string tablename)
+      : db(&database), name(std::move(tablename)) {}
 
   database*   db;
   std::string name;
@@ -91,22 +100,44 @@ public:
 
   // get_or_create_field
   field&       goc_field(const std::string& fieldname);
+  field&       pk_field() const;
   foreign_key& add_foreign_key(field& local_field, field& foreign_field);
 
   void parse_fields();
   void parse_foreign_keys();
-  using fmap = std::vector<std::pair<unsigned, field*>>;
 
+  using fmap = std::vector<std::pair<unsigned, field*>>;
   fmap field_map(mypp::result& rs);
+
+  void limit_pks(const std::unordered_set<int>& pk_values, const std::string& trigger = "manual");
+  void limit(const std::string& sql_limiting_clause, const std::string& trigger = "manual");
+  void truncate() { limit_pks({}, "manual truncate"); }
+
+  std::unordered_set<int> limited_pks(const std::string& sql_limiting_clause,
+                                      const std::string& order_by = "",
+                                      const std::string& limit    = "") const;
+
   void dump(std::ostream& os);
 
+  std::ostream&        vprint(std::ostream& os);
   friend std::ostream& operator<<(std::ostream& os, const table& t);
+
+  void set_expunge_orphans(bool val) { expunge_orphans_ = val; }
+  bool get_expunge_orphans() const;
 
 private:
   std::vector<std::string>& get_create_lines();
   std::vector<std::string>  create_lines;
 
-  void add_pk_field(field& f);
+  std::optional<bool> expunge_orphans_;
+
+  void         add_pk_field(field& f);
+  mypp::result pk_ltd_rs() const;
+  bool         is_ltd_by_pks() const;
+
+  void dump_create(std::ostream& os);
+  void dump_data_prefix(std::ostream& os) const;
+  void dump_data_postfix(std::ostream& os) const;
 };
 
 class database {
@@ -117,11 +148,14 @@ public:
 
   std::unordered_map<std::string, table> tables;     // owns the tables
   std::vector<table*>                    table_list; // to keep insertion order
+  unsigned                               restrict_count  = 0;
+  bool                                   expunge_orphans = true;
 
-  table& add_table(const std::string& tablename);
-  table& goc_table(const std::string& tablename, bool force = false);
-  void   parse_tables();
-  void   dump(std::ostream& os);
+  table&      add_table(const std::string& tablename);
+  table&      goc_table(const std::string& tablename, bool force = false);
+  void        parse_tables(); 
+  void        dump(std::ostream& os);
+  static void begin() { con().query("begin", false); }
 
   friend std::ostream& operator<<(std::ostream& os, const database& db);
 

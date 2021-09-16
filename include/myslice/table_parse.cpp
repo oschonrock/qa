@@ -1,5 +1,5 @@
-#include "os/str.hpp"
 #include "myslice.hpp"
+#include "os/str.hpp"
 #include <ctre.hpp>
 
 namespace myslice {
@@ -27,7 +27,7 @@ void table::parse_fields() {
 
       for (auto&& pk: pks) {
         os::str::trim(pk, "`");
-        auto& pk_field = goc_field(pk);
+        auto& pk_field = fields.at(pk);
         add_pk_field(pk_field);
       }
     }
@@ -40,15 +40,15 @@ void table::parse_foreign_keys() {
       if (auto m = ctre::search<R"(CONSTRAINT `[^`]+` FOREIGN KEY \(`([^`]+)`\) )"
                                 R"(REFERENCES `([^`]+)` \(`([^`]+)`\))">(line)) {
 
-        auto& local_field = goc_field(m.get<1>().to_string());
+        auto& local_field = fields.at(m.get<1>().to_string());
 
         auto& foreign_table = db->goc_table(m.get<2>().to_string()); // triggers recursion
-        auto& foreign_field = foreign_table.goc_field(m.get<3>().to_string());
+        auto& foreign_field = foreign_table.fields.at(m.get<3>().to_string());
 
         auto& fk = add_foreign_key(local_field, foreign_field);
 
         for (auto m2: ctre::range<"( ON (DELETE|UPDATE) "
-                                 "(RESTRICT|CASCADE|SET NULL|NO ACTION|SET DEFAULT))">(line)) {
+                                  "(RESTRICT|CASCADE|SET NULL|NO ACTION|SET DEFAULT))">(line)) {
           auto action = m2.get<2>().to_string();
           if (action == "DELETE")
             fk.ondelete = foreign_key::get_refoption(m2.get<3>().to_string());

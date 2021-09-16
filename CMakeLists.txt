@@ -47,11 +47,13 @@ add_executable(pi apps/pi.cpp)
 add_executable(pytrip apps/pytrip.cpp)
 add_executable(graph apps/graph.cpp)
 add_executable(fib apps/fib.cpp)
+add_executable(sets apps/sets.cpp)
 
 add_executable(visitor apps/visitor.cpp)
 target_link_libraries(visitor benchmark::benchmark)
 
 add_subdirectory(include/fmt)
+
 add_executable(word_count apps/word_count.cpp)
 target_link_libraries(word_count PRIVATE fmt)
 target_compile_options(fmt PUBLIC -Wno-missing-noreturn)
@@ -74,11 +76,11 @@ find_package(Threads REQUIRED)
 add_executable(mandel apps/mandel.cpp)
 target_link_libraries(mandel PRIVATE sfml-graphics sfml-window sfml-system tbb Threads::Threads)
 
-add_subdirectory(include/ctre)
 add_library(mypp include/mypp/mypp.cpp)
 target_include_directories(mypp PRIVATE /usr/include/mariadb)
 target_link_libraries(mypp PRIVATE mariadb)
 
+add_subdirectory(include/ctre)
 add_library(myslice include/myslice/myslice.cpp
   include/myslice/table_parse.cpp)
 target_include_directories(myslice PRIVATE /usr/include/mariadb)
@@ -86,9 +88,10 @@ target_link_libraries(myslice PRIVATE fmt ctre mypp)
 
 add_executable(myslice_demo apps/myslice_demo.cpp)
 target_include_directories(myslice_demo PRIVATE /usr/include/mariadb)
-target_link_libraries(myslice_demo PRIVATE myslice)
+target_link_libraries(myslice_demo PRIVATE myslice mypp)
 add_custom_command(
   TARGET myslice POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy
   ${CMAKE_SOURCE_DIR}/apps/myslice_demo.ini
   ${CMAKE_CURRENT_BINARY_DIR}/bin/myslice_demo.ini)
+
