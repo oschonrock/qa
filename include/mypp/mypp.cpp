@@ -31,7 +31,7 @@ void mysql::connect(const std::string& host, const std::string& user, const std:
 
 result mysql::query(const std::string& sql, bool expect_result) {
   if (::mysql_query(mysql_, sql.c_str()) != 0) {
-    throw std::logic_error("mysql query failed: " + error());
+    throw std::logic_error("mysql_query failed: " + error());
   }
   MYSQL_RES* res = ::mysql_use_result(mysql_); // don't buffer. it's slightly slower
   if (expect_result && res == nullptr) {

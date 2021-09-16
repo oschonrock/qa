@@ -155,7 +155,6 @@ public:
   table&      goc_table(const std::string& tablename, bool force = false);
   void        parse_tables(); 
   void        dump(std::ostream& os);
-  static void begin() { con().query("begin", false); }
 
   friend std::ostream& operator<<(std::ostream& os, const database& db);
 
