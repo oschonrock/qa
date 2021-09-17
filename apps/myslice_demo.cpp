@@ -58,6 +58,26 @@ int main(int argc, char* argv[]) {
           format("select p.id from product p left join event e on p.event_id = e.id where "
                  "e.organisation_id = {0:d} or p.organisation_id = {0:d}",
                  org_id)));
+
+      // deal with double PK part1
+      auto og_pk_field = db.tables.at("organisation_group").pk_field();
+      if (og_pk_field.is_restricted()) {
+        std::cerr << "Notice: special restrictions for ogm.organisation_group_id due to compound "
+                     "FK which is not handled my myslice yet\n";
+        db.tables.at("organisation_group_member")
+            .fields.at("organisation_group_id")
+            .restrict(*og_pk_field.get_restricted_values());
+      }
+
+      // deal with double PK part2
+      auto o_pk_field = db.tables.at("organisation").pk_field();
+      if (o_pk_field.is_restricted()) {
+        std::cerr << "Notice: special restrictions for ogm.organisation_id due to compound FK "
+                     "which is not handled my myslice yet\n";
+        db.tables.at("organisation_group_member")
+            .fields.at("organisation_id")
+            .restrict(*o_pk_field.get_restricted_values());
+      }
     }
     {
       os::bch::Timer t1("dump");
