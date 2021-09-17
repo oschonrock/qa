@@ -15,10 +15,13 @@
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
+#include <vector>
 
 namespace myslice {
 
 static std::unordered_map<std::string, std::string> conf; // NOLINT must be static non-const
+
+using mypp::quote_identifier;
 
 void conf_init(const std::string& filename) {
   if (filename.length() == 0)
@@ -85,9 +88,8 @@ std::string field::quote(const char* unquoted) const {
 
   if (unquoted == nullptr) return "NULL";
 
-  if (nullable && fk != nullptr &&
-      fk->foreign_field.restricted_values &&
-      !fk->foreign_field.restricted_values->contains(std::stoi(unquoted)))
+  if (nullable && fk != nullptr && fk->foreign_field.restricted_values_ &&
+      !fk->foreign_field.restricted_values_->contains(os::str::parse<int>(unquoted)))
     return "NULL"; // maintain referential intergrity
 
   switch (quoting_type) {
@@ -162,10 +164,10 @@ std::ostream& table::vprint(std::ostream& os) {
   return os;
 }
 
-std::vector<std::string>& table::get_create_lines() {
+const std::vector<std::string>& table::get_create_lines() {
   if (create_lines.empty()) {
-    auto rs      = con().query("show create table " + mypp::quote_identifier(name));
-    create_lines = os::str::explode("\n", rs.fetch_row()[1]);
+    auto ct = con().single_value<std::string>("show create table " + quote_identifier(name), 1);
+    create_lines = os::str::explode("\n", ct);
   }
   return create_lines;
 }
@@ -229,23 +231,23 @@ std::unordered_set<int> intersect(const std::unordered_set<int>& s1,
 std::string field::sql_where_clause(const std::unordered_set<int>& values) const {
   if (values.empty()) return " false ";
   std::stringstream s;
-  s << mypp::quote_identifier(name) << " IN (" << os::str::join(values, ",") << ") ";
+  s << quote_identifier(name) << " IN (" << os::str::join(values, ",") << ") ";
   return s.str();
 }
 
 bool field::restrict(const std::unordered_set<int>& values) {
   if (is_pk()) {
-    if (restricted_values.has_value()) {
+    if (restricted_values_.has_value()) {
       // is already restricted..merging and reporting whether we need to re-recurse
-      auto new_restricted_values = intersect(*restricted_values, values);
+      auto new_restricted_values = intersect(*restricted_values_, values);
 
-      if (new_restricted_values.size() == restricted_values->size())
+      if (new_restricted_values.size() == restricted_values_->size())
         return false; // not changed, stop recursing
 
-      restricted_values = std::move(new_restricted_values);
+      restricted_values_ = std::move(new_restricted_values);
     } else {
       // first time a restriction is being applied
-      restricted_values = values;
+      restricted_values_ = values;
     }
   } else {
     // convert this non-primary key restriction into a pk one
@@ -257,14 +259,12 @@ bool field::restrict(const std::unordered_set<int>& values) {
     // to "not grow the allowable PK set under certain circumstances".
     // right now this will just give us a smaller db than perhaps
     // intended, which is not all bad
-
-    // here is an attempt
     if (nullable) {
       // if we we left this, it would be set NULL during dump,
-      // effectively creating an orphan by default we will remove
+      // effectively creating an orphan. By default we will remove
       // orphans there is a system of db/table/field defaults to
       // control this behaviour
-      if (expunge_orphans_) {
+      if (get_expunge_orphans()) {
         table->limit(sql_where_clause(values), os::str::stringify(*this));
       }
     } else {
@@ -286,18 +286,13 @@ std::unordered_set<int> table::limited_pks(const std::string& sql_limiting_claus
                                            const std::string& limit) const {
   auto pk = pk_field();
 
-  std::string sql = "select " + mypp::quote_identifier(pk.name) + " from " +
-                    mypp::quote_identifier(name) + " where " + sql_limiting_clause;
+  std::string sql = "select " + quote_identifier(pk.name) + " from " + quote_identifier(name) +
+                    " where " + sql_limiting_clause;
 
   if (!order_by.empty()) sql += " order by " + order_by;
   if (!limit.empty()) sql += " limit " + limit;
 
-  auto rs = con().query(sql);
-
-  std::unordered_set<int> pks;
-  for (auto&& row: rs) pks.insert(std::stoi(row[0]));
-
-  return pks;
+  return con().single_column<std::unordered_set<int>>(sql);
 }
 
 void table::limit(const std::string& sql_limiting_clause, const std::string& trigger) {
@@ -314,7 +309,7 @@ void table::limit(const std::string& sql_limiting_clause, const std::string& tri
 bool table::is_ltd_by_pks() const {
   try {
     auto& pk = pk_field();
-    return pk.restricted_values.has_value();
+    return pk.is_restricted();
   } catch (const std::logic_error& e) {
     // unable to get a singular PK field, so a restriction is not supported and hence cannot be
     // restricted
@@ -323,11 +318,11 @@ bool table::is_ltd_by_pks() const {
 }
 
 mypp::result table::pk_ltd_rs() const {
-  std::string sql = "select * from " + mypp::quote_identifier(name);
+  std::string sql = "select * from " + quote_identifier(name);
 
   if (is_ltd_by_pks()) {
     auto& pk = pk_field();
-    sql += " where " + pk.sql_where_clause(*pk.restricted_values);
+    sql += " where " + pk.sql_where_clause(*pk.get_restricted_values());
   }
   return con().query(sql);
 }
@@ -338,16 +333,16 @@ void table::dump(std::ostream& os) {
   dump_create(os);
   dump_data_prefix(os);
 
-  std::string  sql_prefix         = "INSERT INTO " + mypp::quote_identifier(name) + " VALUES\n";
+  std::string  sql_prefix         = "INSERT INTO " + quote_identifier(name) + " VALUES\n";
   bool         first              = true;
   std::int64_t packet_count       = 0;
-  std::int64_t max_allowed_packet = con().get_max_allowed_packet() - 1'000;
+  int          max_allowed_packet = con().get_max_allowed_packet() - 1'000;
 
   auto rs = pk_ltd_rs();
   auto fm = field_map(rs);
 
   std::stringstream row_sql;
-  std::int64_t rowcount = 0;
+  std::int64_t      rowcount = 0;
   for (auto&& row: rs) {
     ++rowcount;
     if (first) {
@@ -434,7 +429,7 @@ void database::dump(std::ostream& os) {
 --
 -- Host: )" << conf_get("db_host") << R"(    Database: )" << conf_get("db_db") << R"(
 -- ------------------------------------------------------
--- Server version )" << con().single_value("show variables like 'version'", 1) << R"(
+-- Server version )" << con().single_value<std::string>("show variables like 'version'", 1) << R"(
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -474,21 +469,17 @@ std::ostream& operator<<(std::ostream& os, const database& db) {
 }
 
 std::vector<std::string> database::tablenames() {
-  std::vector<std::string> tablenames;
-
-  auto rs = con().query("show tables");
-  for (auto&& row: rs) tablenames.emplace_back(row[0]);
-  return tablenames;
+  return con().single_column<std::vector<std::string>>("show tables");
 }
 
 void table::dump_create(std::ostream& os) {
   // clang-format off
   os << R"(
 --
--- Table structure for table )" << mypp::quote_identifier(name) <<  R"(
+-- Table structure for table )" << quote_identifier(name) <<  R"(
 --
 
-DROP TABLE IF EXISTS )" << mypp::quote_identifier(name) <<  R"(;
+DROP TABLE IF EXISTS )" << quote_identifier(name) <<  R"(;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 )";
@@ -502,18 +493,18 @@ void table::dump_data_prefix(std::ostream& os) const {
   // clang-format off
   os << R"(
 --
--- Dumping data for table )" << mypp::quote_identifier(name) <<  R"(
+-- Dumping data for table )" << quote_identifier(name) <<  R"(
 --
 
-LOCK TABLES )" << mypp::quote_identifier(name) << R"( WRITE;
-/*!40000 ALTER TABLE )" << mypp::quote_identifier(name) << R"( DISABLE KEYS */;
+LOCK TABLES )" << quote_identifier(name) << R"( WRITE;
+/*!40000 ALTER TABLE )" << quote_identifier(name) << R"( DISABLE KEYS */;
 )";
   // clang-format on
 }
 
 void table::dump_data_postfix(std::ostream& os) const {
   // clang-format off
-  os << R"(/*!40000 ALTER TABLE )" << mypp::quote_identifier(name) << R"( ENABLE KEYS */;
+  os << R"(/*!40000 ALTER TABLE )" << quote_identifier(name) << R"( ENABLE KEYS */;
 UNLOCK TABLES;
 )";
   // clang-format on

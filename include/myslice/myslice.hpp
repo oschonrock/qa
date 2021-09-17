@@ -30,28 +30,25 @@ class field {
 public:
   field(table& t, std::string fieldname) : table(&t), name(std::move(fieldname)) {}
 
-  table*       table;
-  foreign_key* fk = nullptr;
-  std::string  name;
-
-  // and int is 32bits on all modern platforms, which matches mysql INT(11)
-  std::optional<std::unordered_set<int>> restricted_values;
-
-  std::string type;
-
   enum class qtype { string, numeric };
-  qtype quoting_type = qtype::string;
 
+  table*                     table;
+  foreign_key*               fk = nullptr;
+  std::string                name;
+  std::string                type;
   std::optional<int>         size;
   std::optional<std::string> options;
-
-  bool pk       = false;
-  bool nullable = false;
+  bool                       pk           = false;
+  bool                       nullable     = false;
+  qtype                      quoting_type = qtype::string;
 
   bool restrict(const std::unordered_set<int>& values);
-  bool                 is_pk() const;
-  std::string          sql_where_clause(const std::unordered_set<int>& values) const;
-  std::string          quote(const char* unquoted) const;
+  bool is_restricted() const { return restricted_values_.has_value(); }
+  bool is_pk() const;
+
+  std::string sql_where_clause(const std::unordered_set<int>& values) const;
+  std::string quote(const char* unquoted) const;
+
   std::ostream&        vprint(std::ostream& os);
   friend std::ostream& operator<<(std::ostream& os, const field& f);
   static const std::unordered_map<std::string_view, qtype>& type_map();
@@ -59,8 +56,14 @@ public:
   void set_expunge_orphans(bool val) { expunge_orphans_ = val; }
   bool get_expunge_orphans() const;
 
+  const std::optional<std::unordered_set<int>>& get_restricted_values() const {
+    return restricted_values_;
+  }
+
 private:
-  std::optional<bool> expunge_orphans_;
+  // 32bits matched mysql INT(11). private because write access is complex => restrict()
+  std::optional<std::unordered_set<int>> restricted_values_;
+  std::optional<bool>                    expunge_orphans_;
 };
 
 class foreign_key {
@@ -126,8 +129,8 @@ public:
   bool get_expunge_orphans() const;
 
 private:
-  std::vector<std::string>& get_create_lines();
-  std::vector<std::string>  create_lines;
+  const std::vector<std::string>& get_create_lines();
+  std::vector<std::string>        create_lines;
 
   std::optional<bool> expunge_orphans_;
 
@@ -151,10 +154,10 @@ public:
   unsigned                               restrict_count  = 0;
   bool                                   expunge_orphans = true;
 
-  table&      add_table(const std::string& tablename);
-  table&      goc_table(const std::string& tablename, bool force = false);
-  void        parse_tables(); 
-  void        dump(std::ostream& os);
+  table& add_table(const std::string& tablename);
+  table& goc_table(const std::string& tablename, bool force = false);
+  void   parse_tables();
+  void   dump(std::ostream& os);
 
   friend std::ostream& operator<<(std::ostream& os, const database& db);
 

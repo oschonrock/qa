@@ -49,18 +49,9 @@ std::vector<std::string> mysql::single_row(const std::string& sql) {
   return row.vector();
 }
 
-std::string mysql::single_value(const std::string& sql, unsigned col) {
-  auto rs  = query(sql);
-  auto row = rs.fetch_row();
-  if (row.empty()) throw std::logic_error("single row not found by: " + sql);
-  if (rs.num_fields() < col + 1)
-    throw std::logic_error("column " + std::to_string(col) + " not found");
-  return row[col]; // take copy as std::string
-}
-
-std::int64_t mysql::get_max_allowed_packet() {
-  static std::int64_t max_allowed_packet =
-      std::stol(single_value("show variables like 'max_allowed_packet'", 1));
+int mysql::get_max_allowed_packet() {
+  static int max_allowed_packet =
+      single_value<int>("show variables like 'max_allowed_packet'", 1);
   return max_allowed_packet;
 }
 
