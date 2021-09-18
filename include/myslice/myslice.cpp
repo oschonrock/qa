@@ -1,4 +1,5 @@
 #include "myslice.hpp"
+#include "conf/conf.hpp"
 #include "fmt/chrono.h"
 #include "fmt/core.h"
 #include "mypp/mypp.hpp"
@@ -19,57 +20,18 @@
 
 namespace myslice {
 
-static std::unordered_map<std::string, std::string> conf; // NOLINT must be static non-const
-
 using mypp::quote_identifier;
-
-void conf_init(const std::string& filename) {
-  if (filename.length() == 0)
-    throw std::logic_error("must provide config filename on first call to `conf()`");
-
-  std::ifstream configfile(filename);
-  if (!configfile.is_open())
-    throw std::logic_error("could not open config file: tried `" + filename + "`.");
-
-  for (std::string line; std::getline(configfile, line);) {
-    os::str::trim(line);
-    if (line.empty()) continue;
-    auto pos = line.find('=');
-    if (pos == std::string::npos)
-      throw std::logic_error("illegal configfile syntax, please use `name=value` on each line");
-    auto key   = line.substr(0, pos);
-    auto value = line.substr(pos + 1);
-
-    os::str::trim(key);
-    if (key.length() == 0)
-      throw std::logic_error("config file key is empty on line: `" + line + "`");
-    if (conf.contains(key))
-      throw std::logic_error("duplicate key error in config file: `" + key + "`");
-
-    os::str::trim(value);
-    if (value.length() == 0)
-      throw std::logic_error("config file value is empty on line: `" + line + "`");
-
-    conf.emplace(std::move(key), std::move(value));
-  }
-}
-
-const std::string& conf_get(const std::string& key) {
-  auto it = conf.find(key); // using .contains() would mean 2 hash lookups
-  if (it == conf.end()) throw std::logic_error("no config value found for `" + key + "`\n");
-  return it->second; // must exist and has lifetime of life of program, so ref is fine
-}
 
 mypp::mysql& con() {
   static auto con = []() {
     mypp::mysql my;
     // clang-format off
-    my.connect(conf_get("db_host"),
-               conf_get("db_user"),
-               conf_get("db_pass"),
-               conf_get("db_db"),
-               static_cast<unsigned>(std::stoi(conf_get("db_port"))),
-               conf_get("db_socket"));
+    my.connect(conf::get("db_host"),
+               conf::get("db_user"),
+               conf::get("db_pass"),
+               conf::get("db_db"),
+               static_cast<unsigned>(std::stoi(conf::get("db_port"))),
+               conf::get("db_socket"));
     // clang-format on
     return my;
   }();
@@ -427,7 +389,7 @@ void database::dump(std::ostream& os) {
   // clang-format off
     os << R"(-- Myslice Dump
 --
--- Host: )" << conf_get("db_host") << R"(    Database: )" << conf_get("db_db") << R"(
+-- Host: )" << conf::get("db_host") << R"(    Database: )" << conf::get("db_db") << R"(
 -- ------------------------------------------------------
 -- Server version )" << con().single_value<std::string>("show variables like 'version'", 1) << R"(
 

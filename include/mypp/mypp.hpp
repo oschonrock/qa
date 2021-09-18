@@ -18,7 +18,11 @@ class mysql;
 class result;
 class row;
 
-mypp::mysql& con();
+// Get a reference to the currently connected mypp::mysql object
+// Will make the connection on first call and then caches it.
+// Connection details are in an ini file.
+// Throws if it can't connect.
+mysql& con();
 
 // the result set obtained from a query. Wrapper for MYSQL_RES.
 class result {
@@ -47,6 +51,7 @@ private:
   MYSQL_RES* myr = nullptr;
 };
 
+// representing one row of a resultset. Wrapper for MYSQL_ROW
 class row {
 public:
   row(result& result_set, MYSQL_ROW row) : rs(&result_set), row_(row) {}
@@ -66,7 +71,7 @@ public:
     return row_[idx];
   }
 
-  template <typename ValueType>
+  template <typename ValueType = std::string>
   [[nodiscard]] ValueType get(unsigned idx) const {
     // try numeric parsing by default
     return os::str::parse<ValueType>((*this)[idx]);
@@ -151,6 +156,8 @@ public:
   // throws if row not found
   template <typename ValueType>
   ValueType single_value(const std::string& sql, unsigned col = 0) {
+    static_assert(!std::is_same_v<ValueType, const char*>,
+                  "single_value<const char*> will result in dangling pointers");
     auto rs  = query(sql);
     auto row = rs.fetch_row();
     if (row.empty()) throw std::logic_error("single row not found by: " + sql);
@@ -164,6 +171,8 @@ public:
     ContainerType values;
     auto          rs = query(sql);
     using ValueType  = typename ContainerType::value_type;
+    static_assert(!std::is_same_v<ValueType, const char*>,
+                  "single_column<Container<const char*>> will result in dangling pointers");
     for (auto&& row: rs) {
       if constexpr (has_push_back<ContainerType>::value)
         values.push_back(row.get<ValueType>(col));
@@ -186,7 +195,6 @@ private:
   MYSQL* mysql_ = nullptr;
 };
 
-// representing one row of a resultset. Wrapper for MYSQL_ROW
 std::string quote_identifier(const std::string& identifier);
 
 } // namespace mypp

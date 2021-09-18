@@ -77,19 +77,21 @@ add_executable(mandel apps/mandel.cpp)
 target_link_libraries(mandel PRIVATE sfml-graphics sfml-window sfml-system tbb Threads::Threads)
 
 add_library(mypp include/mypp/mypp.cpp)
-target_include_directories(mypp PRIVATE /usr/include/mariadb)
+target_include_directories(mypp PUBLIC /usr/include/mariadb)
 target_link_libraries(mypp PRIVATE mariadb)
 target_compile_options(mypp PUBLIC -Wno-missing-noreturn)
+
+add_library(conf include/conf/conf.cpp)
 
 add_subdirectory(include/ctre)
 add_library(myslice include/myslice/myslice.cpp
   include/myslice/table_parse.cpp)
 target_include_directories(myslice PRIVATE /usr/include/mariadb)
-target_link_libraries(myslice PRIVATE fmt ctre mypp)
+target_link_libraries(myslice PRIVATE fmt ctre mypp conf)
 
 add_executable(myslice_demo apps/myslice_demo.cpp)
 target_include_directories(myslice_demo PRIVATE /usr/include/mariadb)
-target_link_libraries(myslice_demo PRIVATE myslice mypp)
+target_link_libraries(myslice_demo PRIVATE myslice mypp conf fmt)
 target_compile_options(myslice_demo PUBLIC -Wno-missing-noreturn)
 
 add_custom_command(
@@ -97,4 +99,7 @@ add_custom_command(
   COMMAND ${CMAKE_COMMAND} -E copy
   ${CMAKE_SOURCE_DIR}/apps/myslice_demo.ini
   ${CMAKE_CURRENT_BINARY_DIR}/bin/myslice_demo.ini)
+
+add_executable(wc apps/wc.cpp)
+target_link_libraries(wc PRIVATE mypp conf)
 

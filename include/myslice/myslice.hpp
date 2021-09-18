@@ -16,9 +16,6 @@
 
 namespace myslice {
 
-void               conf_init(const std::string& filename = "");
-const std::string& conf_get(const std::string& key);
-
 class field;
 class foreign_key;
 class table;

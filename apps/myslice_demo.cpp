@@ -1,9 +1,9 @@
-#include "fmt/include/fmt/core.h"
+#include "conf/conf.hpp"
+#include "fmt/core.h"
 #include "myslice/myslice.hpp"
 #include "os/bch.hpp"
-#include <cstdlib>
 #include <iostream>
-#include <limits>
+#include <locale>
 #include <stdexcept>
 #include <string>
 #include <unordered_set>
@@ -18,7 +18,7 @@ int main(int argc, char* argv[]) {
 
     const int org_id = std::stoi(args[1]);
 
-    myslice::conf_init(args[0] + ".ini");
+    conf::init(args[0] + ".ini");
     myslice::database db("wcdb");
     using myslice::con, fmt::format;
 
