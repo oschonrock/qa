@@ -95,6 +95,48 @@ std::vector<member> load_members(int limit = 10'000) {
   return members;
 }
 
+struct tax_rate {
+  int                              id;
+  double                           rate;
+  std::string                      description;
+  std::optional<date::sys_seconds> date_last_modified;
+  std::optional<date::sys_seconds> date_added;
+
+  friend std::ostream& operator<<(std::ostream& os, const tax_rate& tr) {
+    using mypp::format_time_point;
+
+    os << tr.id << ": " << tr.description << ": " << tr.rate << "%\n";
+    if (tr.date_last_modified)
+      os << "date_last_modified=" << format_time_point(tr.date_last_modified.value()) << "\n";
+    if (tr.date_added) os << "date_added=" << format_time_point(tr.date_added.value()) << "\n";
+    return os;
+  }
+};
+
+std::vector<tax_rate> load_tax_rates() {
+  std::vector<tax_rate> tax_rates;
+
+  for (auto&& r: db().query("select "
+                            "  id, "
+                            "  rate, "
+                            "  description, "
+                            "  date_last_modified, "
+                            "  date_added "
+                            "from tax_rate")) {
+
+    tax_rates.push_back({
+        // clang-format off
+        .id                     = r.get<int>(0),
+        .rate                   = r.get<double>(1),
+        .description            = r.get(2),
+        .date_last_modified     = r.get<std::optional<date::sys_days>>(3),
+        .date_added             = r.get<std::optional<date::sys_seconds>>(4),
+        // clang-format on
+    });
+  }
+  return tax_rates;
+}
+
 void report_topn(std::size_t N, const std::unordered_map<std::string, std::size_t>& map) {
   using MapType  = std::remove_cvref_t<decltype(map)>;
   using PairType = std::pair<MapType::key_type, MapType::mapped_type>;
@@ -129,10 +171,6 @@ void report_stats(std::size_t N, const std::vector<member>& members) {
   report_topn(N, failure_freqs);
 }
 
-void dump_members(const std::vector<member>& members) {
-  for (auto&& m: members) std::cout << m << "\n";
-}
-
 int main(int argc, char* argv[]) {
   std::vector<std::string> args(argv, argv + argc);
 
@@ -155,9 +193,15 @@ int main(int argc, char* argv[]) {
     }
     {
       os::bch::Timer t("dump");
-      dump_members(members);
+      for (auto&& m: members) std::cout << m << "\n";
     }
 
+    std::vector<tax_rate> tax_rates;
+    {
+      os::bch::Timer t("load/dump tax_rates");
+      tax_rates = load_tax_rates();
+      for (auto&& m: tax_rates) std::cout << m << "\n";
+    }
   } catch (const std::exception& e) {
     std::cerr << "Something went wrong. Exception thrown: " << e.what() << std::endl;
   }

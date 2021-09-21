@@ -65,13 +65,6 @@ struct is_optional : std::false_type {};
 template <typename T>
 struct is_optional<T, std::void_t<decltype(std::declval<T>().value())>> : std::true_type {};
 
-template <typename DateType>
-inline constexpr auto date_format = "bad format";
-template <>
-inline constexpr auto date_format<date::sys_days> = "%Y-%m-%d";
-template <>
-inline constexpr auto date_format<date::sys_seconds> = "%Y-%m-%d %H:%M:%S";
-
 // adapted from fmt::detail
 template <typename ReturnType>
 constexpr ReturnType parse_nonnegative_int(const char* begin, const char* end,
@@ -143,9 +136,17 @@ template <typename NumericType>
 inline NumericType parse(const char* str) {
   if constexpr (is_optional<NumericType>::value) {
     if (str == nullptr) return std::nullopt;
-    using InnerType = std::remove_reference_t<decltype(std::declval<NumericType>().value())>;
 
-    return parse<InnerType>(str);
+    using InnerType = std::remove_reference_t<decltype(std::declval<NumericType>().value())>;
+    
+    // special DATE and DATETIME null'ish values
+    if constexpr (std::is_same_v<InnerType, date::sys_seconds>) {
+      if (std::strcmp(str, "0000-00-00 00:00:00") == 0) return std::nullopt;
+    } else if constexpr (std::is_same_v<InnerType, date::sys_days>) {
+      if (std::strcmp(str, "0000-00-00") == 0) return std::nullopt;
+    }
+
+    return parse<InnerType>(str); // unwrap and recurse
   } else {
     if (str == nullptr)
       throw std::domain_error("requested type was not std::optional, but db returned NULL");
