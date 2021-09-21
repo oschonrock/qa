@@ -2,12 +2,14 @@
 #include "conf/conf.hpp"
 #include "fmt/chrono.h"
 #include "fmt/core.h"
+#include "fmt/ostream.h"
 #include "mypp/mypp.hpp"
 #include "os/algo.hpp"
 #include "os/str.hpp"
 #include <cstdint>
 #include <cstdlib>
 #include <fstream>
+#include <iomanip>
 #include <iterator>
 #include <optional>
 #include <ostream>
@@ -160,8 +162,8 @@ field& table::pk_field() const {
 
 void table::limit_pks(const std::unordered_set<int>& pk_values, const std::string& trigger) {
   ++db->restrict_count;
-  std::cerr << "Notice: Table: " << *this << ": " << db->restrict_count << ": limited to "
-            << pk_values.size() << " rows. Trigger: " << trigger << "\n";
+  std::cerr << fmt::format("Notice: Restriction: {:3d} {:35} {:6d} {:30s}\n", db->restrict_count,
+                           *this, pk_values.size(), trigger);
 
   auto& pk = pk_field();
   if (pk.restrict(pk_values))
