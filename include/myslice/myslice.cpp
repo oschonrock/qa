@@ -26,13 +26,15 @@ mypp::mysql& con() {
   static auto con = []() {
     mypp::mysql my;
     // clang-format off
-    my.connect(conf::get("db_host"),
+    my.connect(conf::get_or("db_host", "localhost"),
                conf::get("db_user"),
                conf::get("db_pass"),
                conf::get("db_db"),
-               static_cast<unsigned>(std::stoi(conf::get("db_port"))),
-               conf::get("db_socket"));
+               conf::get_or<unsigned>("db_port", 0U),
+               conf::get_or("db_socket", ""));
     // clang-format on
+    std::cerr << "Notice: Connected to " << conf::get("db_db") << " on "
+              << my.get_host_info() << "\n";
     return my;
   }();
   return con;
@@ -389,7 +391,7 @@ void database::dump(std::ostream& os) {
   // clang-format off
     os << R"(-- Myslice Dump
 --
--- Host: )" << conf::get("db_host") << R"(    Database: )" << conf::get("db_db") << R"(
+-- Host: )" << conf::get_or("db_host", "localhost") << R"(    Database: )" << conf::get("db_db") << R"(
 -- ------------------------------------------------------
 -- Server version )" << con().single_value<std::string>("show variables like 'version'", 1) << R"(
 

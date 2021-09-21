@@ -1,12 +1,9 @@
 #include "mypp.hpp"
+#include "mysql.h"
+#include <stdexcept>
+#include <type_traits>
 
 namespace mypp {
-
-std::string quote_identifier(const std::string& identifier) {
-  std::ostringstream os;
-  os << '`' << os::str::replace_all_copy(identifier, "`", "``") << '`';
-  return os.str();
-}
 
 // mypp::mysql
 
@@ -23,11 +20,19 @@ void mysql::connect(const std::string& host, const std::string& user, const std:
                     std::uint64_t flags) {
 
   if (::mysql_real_connect(mysql_, host.c_str(), user.c_str(), password.c_str(), db.c_str(), port,
-                           socket.c_str(), flags) == nullptr) {
-    throw std::logic_error("mysql connect failed");
+                           socket.empty() ? nullptr : socket.c_str(), flags) == nullptr) {
+    throw std::logic_error("failed to connect to " + db + " on " + host + " as user " + user);
   }
 }
 
+void mysql::set_character_set(const std::string& charset) {
+  if (::mysql_set_character_set(mysql_, charset.c_str()) != 0) {
+    throw std::logic_error("couldn't set mysql connection charset to: `" + charset +
+                           "`.  Error was:" + error());
+  }
+}
+
+std::string mysql::get_host_info() { return ::mysql_get_host_info(mysql_); }
 
 result mysql::query(const std::string& sql, bool expect_result) {
   if (::mysql_query(mysql_, sql.c_str()) != 0) {
@@ -50,8 +55,7 @@ std::vector<std::string> mysql::single_row(const std::string& sql) {
 }
 
 int mysql::get_max_allowed_packet() {
-  static int max_allowed_packet =
-      single_value<int>("show variables like 'max_allowed_packet'", 1);
+  static int max_allowed_packet = single_value<int>("show variables like 'max_allowed_packet'", 1);
   return max_allowed_packet;
 }
 
@@ -94,4 +98,11 @@ std::vector<std::string> result::fieldnames() {
   return fieldnames;
 }
 
+// free functions
+
+std::string quote_identifier(const std::string& identifier) {
+  std::ostringstream os;
+  os << '`' << os::str::replace_all_copy(identifier, "`", "``") << '`';
+  return os.str();
+}
 } // namespace mypp
