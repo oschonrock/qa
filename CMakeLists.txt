@@ -32,7 +32,13 @@ endif()
 
 find_package(benchmark REQUIRED)
 
-include_directories(include include/toolbelt csv-parser/include)
+include_directories(include csv-parser/include)
+
+add_subdirectory(include/date)
+
+add_library(toolbelt INTERFACE)
+target_include_directories(toolbelt INTERFACE include/toolbelt)
+target_link_libraries(toolbelt INTERFACE date)
 
 add_subdirectory(csv-parser)
 # csv parser throws many sign & conversion errors. also a few shadow warnings
@@ -48,6 +54,7 @@ add_executable(pytrip apps/pytrip.cpp)
 add_executable(graph apps/graph.cpp)
 add_executable(fib apps/fib.cpp)
 add_executable(sets apps/sets.cpp)
+target_link_libraries(sets toolbelt)
 
 add_executable(visitor apps/visitor.cpp)
 target_link_libraries(visitor benchmark::benchmark)
@@ -74,14 +81,16 @@ set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
 add_executable(mandel apps/mandel.cpp)
-target_link_libraries(mandel PRIVATE sfml-graphics sfml-window sfml-system tbb Threads::Threads)
+target_link_libraries(mandel PRIVATE toolbelt sfml-graphics sfml-window sfml-system tbb Threads::Threads)
 
 add_library(mypp include/mypp/mypp.cpp)
 target_include_directories(mypp PUBLIC /usr/include/mariadb)
-target_link_libraries(mypp PRIVATE mariadb)
+target_link_libraries(mypp PRIVATE mariadb date fmt)
+target_link_libraries(mypp PUBLIC date toolbelt)
 target_compile_options(mypp PUBLIC -Wno-missing-noreturn)
 
 add_library(conf include/conf/conf.cpp)
+target_link_libraries(conf PRIVATE toolbelt)
 
 add_subdirectory(include/ctre)
 add_library(myslice include/myslice/myslice.cpp
@@ -98,8 +107,9 @@ add_custom_command(
   TARGET myslice POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy
   ${CMAKE_SOURCE_DIR}/apps/myslice_demo.ini
-  ${CMAKE_CURRENT_BINARY_DIR}/bin/myslice_demo.ini)
+  ${CMAKE_CURRENT_BINARY_DIR}/bin/myslice_demo.ini
+  COMMENT "Deploying myslice_demo.ini config")
 
 add_executable(wc apps/wc.cpp)
-target_link_libraries(wc PRIVATE mypp conf)
+target_link_libraries(wc PRIVATE toolbelt mypp conf fmt date)
 
