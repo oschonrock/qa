@@ -1,13 +1,15 @@
 #include "conf/conf.hpp"
 #include "date/date.h"
+#include "fmt/core.h"
 #include "mypp/mypp.hpp"
 #include "os/bch.hpp"
-#include <ctime>
+#include <algorithm>
+#include <chrono>
 #include <filesystem>
-#include <iomanip>
-#include <optional>
-#include <sstream>
+#include <iostream>
+#include <numeric>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 mypp::mysql& db() {
@@ -58,28 +60,24 @@ struct member {
   }
 };
 
-int main(int argc, char* argv[]) {
-  std::vector<std::string> args(argv, argv + argc);
-  std::ios::sync_with_stdio(false);
+std::vector<member> load_members(int limit = 10'000) {
+  std::vector<member> members;
 
-  try {
-    conf::init(std::filesystem::path(args[0]).parent_path().append("myslice_demo.ini"));
+  for (auto&& r: db().query("select "
+                            "  firstname, "
+                            "  lastname, "
+                            "  email, "
+                            "  dob, "
+                            "  date_of_last_logon, "
+                            "  created_at, "
+                            "  updated_at, "
+                            "  email_failure_count, "
+                            "  invalid, "
+                            "  invalidated_time "
+                            "from member limit " +
+                            std::to_string(limit))) {
 
-    std::vector<member> members;
-    for (auto&& r: db().query("select "
-                              "  firstname, "
-                              "  lastname, "
-                              "  email, "
-                              "  dob, "
-                              "  date_of_last_logon, "
-                              "  created_at, "
-                              "  updated_at, "
-                              "  email_failure_count, "
-                              "  invalid, "
-                              "  invalidated_time "
-                              "from member")) {
-
-      members.push_back(member{
+    members.push_back({
         // clang-format off
         .firstname              = r.get(0),
         .lastname               = r.get(1),
@@ -92,10 +90,73 @@ int main(int argc, char* argv[]) {
         .invalid                = r.get<bool>(8),
         .invalidated_time       = r.get<std::optional<date::sys_seconds>>(9)
         // clang-format on
-      });
-    }
+    });
+  }
+  return members;
+}
 
-    for (auto&& m: members) std::cout << m << "\n";
+void report_topn(std::size_t N, const std::unordered_map<std::string, std::size_t>& map) {
+  using MapType  = std::remove_cvref_t<decltype(map)>;
+  using PairType = std::pair<MapType::key_type, MapType::mapped_type>;
+
+  std::vector<PairType> topN(N);
+  std::partial_sort_copy(map.begin(), map.end(), topN.begin(), topN.end(),
+                         [](const auto& a, const auto& b) { return a.second > b.second; });
+
+  for (auto&& p: topN) std::cout << fmt::format("{:20s} {:6d}", p.first, p.second) << "\n";
+
+  std::cout << fmt::format(
+      "{:20s} {:6d}\n", "Total",
+      std::accumulate(map.begin(), map.end(), 0UL,
+                      [](std::size_t count, const auto& freq) { return count += freq.second; }));
+}
+
+void report_stats(std::size_t N, const std::vector<member>& members) {
+  std::unordered_map<std::string, std::size_t> invalid_freqs;
+  std::unordered_map<std::string, std::size_t> failure_freqs;
+  for (auto&& m: members) {
+    std::string domain = m.email.substr(m.email.find('@') + 1);
+    if (domain != "temp.webcollect.org.uk") {
+      failure_freqs[domain] += static_cast<std::size_t>(m.email_failure_count);
+      if (m.invalid) ++invalid_freqs[domain];
+    }
+  }
+
+  std::cout << "invalid\n";
+  report_topn(N, invalid_freqs);
+
+  std::cout << "\nfailures\n";
+  report_topn(N, failure_freqs);
+}
+
+void dump_members(const std::vector<member>& members) {
+  for (auto&& m: members) std::cout << m << "\n";
+}
+
+int main(int argc, char* argv[]) {
+  std::vector<std::string> args(argv, argv + argc);
+
+  std::ios::sync_with_stdio(false);
+
+  try {
+    conf::init(std::filesystem::path(args[0]).parent_path().append("myslice_demo.ini"));
+
+    auto limit = argc > 1 ? std::stoi(argv[1]) : 10'000;
+    auto N     = argc > 2 ? std::stoull(argv[2]) : 10;
+
+    std::vector<member> members;
+    {
+      os::bch::Timer t("load");
+      members = load_members(limit);
+    }
+    {
+      os::bch::Timer t("stats");
+      report_stats(N, members);
+    }
+    {
+      os::bch::Timer t("dump");
+      dump_members(members);
+    }
 
   } catch (const std::exception& e) {
     std::cerr << "Something went wrong. Exception thrown: " << e.what() << std::endl;

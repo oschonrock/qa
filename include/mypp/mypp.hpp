@@ -72,14 +72,80 @@ inline constexpr auto date_format<date::sys_days> = "%Y-%m-%d";
 template <>
 inline constexpr auto date_format<date::sys_seconds> = "%Y-%m-%d %H:%M:%S";
 
+// adapted from fmt::detail
+template <typename ReturnType>
+constexpr ReturnType parse_nonnegative_int(const char* begin, const char* end,
+                                           ReturnType error_value) noexcept {
+
+  assert(begin != end && '0' <= *begin && *begin <= '9'); // NOLINT decay, can't suppress??
+  unsigned    value = 0;
+  unsigned    prev  = 0;
+  const char* p     = begin;
+  do {
+    prev  = value;
+    value = value * 10 + unsigned(*p - '0');
+    ++p;
+  } while (p != end && '0' <= *p && *p <= '9');
+  auto num_digits = p - begin;
+  if (num_digits <= std::numeric_limits<ReturnType>::digits10)
+    return static_cast<ReturnType>(value);
+  // Check for overflow. Will never happen here
+  const auto max = static_cast<std::uint64_t>(std::numeric_limits<ReturnType>::max());
+  return num_digits == std::numeric_limits<int>::digits10 + 1 &&
+                 prev * 10ULL + std::uint64_t(p[-1] - '0') <= max
+             ? static_cast<ReturnType>(value)
+             : error_value;
+}
+
+// high peformance mysql date format parsing
+template <typename TimePointType>
+TimePointType parse_date_time(const char* s) {
+  static_assert(std::is_same_v<TimePointType, date::sys_days> ||
+                    std::is_same_v<TimePointType, date::sys_seconds>,
+                "don't know how to parse this timepoint");
+
+  using date::year, date::month, date::day, std::chrono::hours, std::chrono::minutes,
+      std::chrono::seconds;
+
+  // fmt   YYYY-MM-DD HH:MM:SS  (time part only applies to date::sys_seconds)
+  //       0123456789012345678
+
+  std::size_t len = strlen(s);
+  if (len < 10) throw std::domain_error("not long enough to parse a date `" + std::string(s) + "`");
+
+  date::year_month_day ymd = {year(parse_nonnegative_int(&s[0], &s[4], -1)),
+                              month(parse_nonnegative_int(&s[5], &s[7], ~0U)),
+                              day(parse_nonnegative_int(&s[8], &s[10], ~0U))};
+
+  if (!ymd.ok()) throw std::domain_error("invalid date `" + std::string(s) + "`");
+
+  auto date_tp = date::sys_days{ymd};
+
+  if constexpr (std::is_same_v<TimePointType, date::sys_days>) {
+    return date_tp;
+  } else { // date::sys_seconds
+    if (len < 19)
+      throw std::domain_error("not long enough to parse a datetime `" + std::string(s) + "`");
+
+    auto hrs  = hours(parse_nonnegative_int(&s[11], &s[13], ~0U));
+    auto mins = minutes(parse_nonnegative_int(&s[14], &s[16], ~0U));
+    auto secs = seconds(parse_nonnegative_int(&s[17], &s[19], ~0U));
+
+    if (hrs.count() > 23 || mins.count() > 59 || secs.count() > 59)
+      throw std::domain_error("invalid time in `" + std::string(s) + "`");
+
+    return date_tp + hrs + mins + secs;
+  }
+}
+
 // mysql/mariadb specific parsing
 template <typename NumericType>
 inline NumericType parse(const char* str) {
   if constexpr (is_optional<NumericType>::value) {
     if (str == nullptr) return std::nullopt;
     using InnerType = std::remove_reference_t<decltype(std::declval<NumericType>().value())>;
-    return parse<InnerType>(str);
 
+    return parse<InnerType>(str);
   } else {
     if (str == nullptr)
       throw std::domain_error("requested type was not std::optional, but db returned NULL");
@@ -89,13 +155,8 @@ inline NumericType parse(const char* str) {
 
     } else if constexpr (std::is_same_v<NumericType, date::sys_days> ||
                          std::is_same_v<NumericType, date::sys_seconds>) {
-      std::istringstream stream(str);
-      NumericType        t;
-      date::from_stream(stream, date_format<NumericType>, t);
-      if (stream.fail())
-        throw std::domain_error("failed to parse date: " + std::string(str) + " with format " +
-                                date_format<NumericType>);
-      return t;
+
+      return impl::parse_date_time<NumericType>(str);
     } else {
       // delegate to general numeric formats
       return os::str::parse<NumericType>(str);
@@ -134,10 +195,11 @@ public:
   // takes a copy in a std::string
   template <>
   [[nodiscard]] std::string get<std::string>(unsigned idx) const {
-    return (*this)[idx];
+    return (*this)[idx]; // converting constructor
   }
 
-  // access to the raw const char*
+  // access to the raw const char*, potentially for external parsing
+  // beware lifetimes!
   template <>
   [[nodiscard]] const char* get<const char*>(unsigned idx) const {
     return (*this)[idx];
@@ -261,16 +323,14 @@ inline void stamp(char* s, long i) {
 // much faster date format function "YYYY-MM-DD HH:MM:SS" (credit Howard Hinnant)
 template <typename TimePointType>
 std::string format_time_point(TimePointType tp) {
-  if constexpr (!std::is_same_v<TimePointType, date::sys_days> &&
-                !std::is_same_v<TimePointType, date::sys_seconds>) {
-    static_assert(os::str::always_false<TimePointType>,
-                  "do not know how to format this TimePointType");
-  }
+  static_assert(std::is_same_v<TimePointType, date::sys_days> ||
+                    std::is_same_v<TimePointType, date::sys_seconds>,
+                "do not know how to format this TimePointType");
 
   auto today = floor<date::days>(tp);
 
   using impl::stamp;
-  //                 yyyy-mm-dd
+  //                 YYYY-MM-DD
   std::string out = "0000-00-00";
   //                 0123456789
   if constexpr (std::is_same_v<TimePointType, date::sys_seconds>) {
