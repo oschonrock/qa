@@ -70,7 +70,7 @@ template <typename ReturnType>
 constexpr ReturnType parse_nonnegative_int(const char* begin, const char* end,
                                            ReturnType error_value) noexcept {
 
-  assert(begin != end && '0' <= *begin && *begin <= '9'); // NOLINT decay, can't suppress??
+  assert(begin != end && '0' <= *begin && *begin <= '9');
   unsigned    value = 0;
   unsigned    prev  = 0;
   const char* p     = begin;
@@ -138,7 +138,7 @@ inline NumericType parse(const char* str) {
     if (str == nullptr) return std::nullopt;
 
     using InnerType = std::remove_reference_t<decltype(std::declval<NumericType>().value())>;
-    
+
     // special DATE and DATETIME null'ish values
     if constexpr (std::is_same_v<InnerType, date::sys_seconds>) {
       if (std::strcmp(str, "0000-00-00 00:00:00") == 0) return std::nullopt;
@@ -313,9 +313,9 @@ std::string quote_identifier(const std::string& identifier);
 namespace impl {
 // render integer value into buffer pre-filled with '0'
 // doesn't work for negatives, but uses long for convenient interoperability
-inline void stamp(char* s, long i) {
+inline constexpr void stamp(char* s, long i) {
   do {
-    *s-- = char(i % 10) + '0'; // NOLINT ptr arith
+    *s-- = static_cast<char>(i % 10) + '0'; // NOLINT narrowing
     i /= 10;
   } while (i > 0);
 }

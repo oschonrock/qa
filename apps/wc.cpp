@@ -14,7 +14,6 @@
 
 mypp::mysql& db() {
   static auto db = []() {
-    using conf::get;
     mypp::mysql db;
     db.connect(conf::get_or("db_host", "localhost"), conf::get("db_user"), conf::get("db_pass"),
                conf::get("db_db"), conf::get_or<unsigned>("db_port", 0U),
@@ -52,9 +51,9 @@ struct member {
     if (m.created_at) os << "created_at=" << format_time_point(m.created_at.value()) << "\n";
     if (m.updated_at) os << "updated_at=" << format_time_point(m.updated_at.value()) << "\n";
     os << "email_failure_count=" << m.email_failure_count << "\n";
-    os << "invalid=" << std::boolalpha << m.invalid << "\n"
-       << "invalidated_time=";
-    if (m.invalidated_time) os << format_time_point(m.invalidated_time.value());
+    os << "invalid=" << std::boolalpha << m.invalid << "\n";
+    if (m.invalidated_time)
+      os << "invalidated_time=" << format_time_point(m.invalidated_time.value());
     os << "\n";
     return os;
   }
