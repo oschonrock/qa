@@ -157,6 +157,7 @@ try {
   timer("dump", function () use ($members) {
     dump_members($members);
   });
+  fwrite(STDERR, "peak memory usage: " . number_format(memory_get_peak_usage(true)) . "\n");
 } catch (Exception $e) {
   fwrite(STDERR, "Something went wrong: Execption: " . $e->getMessage() . "\n");
   exit(1); // failure

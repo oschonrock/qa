@@ -71,12 +71,12 @@ constexpr ReturnType parse_nonnegative_int(const char* begin, const char* end,
                                            ReturnType error_value) noexcept {
 
   assert(begin != end && '0' <= *begin && *begin <= '9');
-  unsigned    value = 0;
-  unsigned    prev  = 0;
-  const char* p     = begin;
+  std::uint64_t value = 0;
+  std::uint64_t prev  = 0;
+  const char*   p     = begin;
   do {
     prev  = value;
-    value = value * 10 + unsigned(*p - '0');
+    value = value * 10 + std::uint64_t(*p - '0');
     ++p;
   } while (p != end && '0' <= *p && *p <= '9');
   auto num_digits = p - begin;
@@ -84,7 +84,7 @@ constexpr ReturnType parse_nonnegative_int(const char* begin, const char* end,
     return static_cast<ReturnType>(value);
   // Check for overflow. Will never happen here
   const auto max = static_cast<std::uint64_t>(std::numeric_limits<ReturnType>::max());
-  return num_digits == std::numeric_limits<int>::digits10 + 1 &&
+  return num_digits == std::numeric_limits<ReturnType>::digits10 + 1 &&
                  prev * 10ULL + std::uint64_t(p[-1] - '0') <= max
              ? static_cast<ReturnType>(value)
              : error_value;

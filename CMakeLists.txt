@@ -34,11 +34,15 @@ find_package(benchmark REQUIRED)
 
 include_directories(include csv-parser/include)
 
+add_subdirectory(include/fmt)
+
 add_subdirectory(include/date)
+
+add_subdirectory(include/fast_float)
 
 add_library(toolbelt INTERFACE)
 target_include_directories(toolbelt INTERFACE include/toolbelt)
-target_link_libraries(toolbelt INTERFACE date)
+target_link_libraries(toolbelt INTERFACE date fast_float)
 
 add_subdirectory(csv-parser)
 # csv parser throws many sign & conversion errors. also a few shadow warnings
@@ -58,8 +62,6 @@ target_link_libraries(sets toolbelt)
 
 add_executable(visitor apps/visitor.cpp)
 target_link_libraries(visitor benchmark::benchmark)
-
-add_subdirectory(include/fmt)
 
 add_executable(word_count apps/word_count.cpp)
 target_link_libraries(word_count PRIVATE fmt)

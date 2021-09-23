@@ -19,7 +19,7 @@ mypp::mysql& db() {
                conf::get("db_db"), conf::get_or<unsigned>("db_port", 0U),
                conf::get_or("db_socket", ""));
 
-    constexpr auto charset = "utf8";
+    auto charset = conf::get_or("db_charset", "utf8");
     db.set_character_set(charset);
 
     std::cerr << "Notice: Connected to " << conf::get("db_db") << " on " << db.get_host_info()
@@ -136,6 +136,73 @@ std::vector<tax_rate> load_tax_rates() {
   return tax_rates;
 }
 
+struct order_lineitem {
+  int         id;
+  int         order_id;
+  std::string description;
+  double      tax_rate;
+  double      value_without_tax;
+  double      value_with_tax;
+
+  friend std::ostream& operator<<(std::ostream& os, const order_lineitem& oli) {
+    using mypp::format_time_point;
+
+    // much faster than iostream (uses dragonbox for the floats?)
+    os << fmt::format("{:d}: {:d}: {:s}: {:.4f}% {:.2f} {:.2f}", oli.id, oli.order_id,
+                      oli.description, oli.tax_rate, oli.value_without_tax, oli.value_with_tax);
+
+    return os;
+  }
+};
+
+std::vector<order_lineitem> load_order_lineitems() {
+  std::vector<order_lineitem> order_lineitems;
+
+  for (auto&& r: db().query("select "
+                            "  id, "
+                            "  order_id, "
+                            "  description, "
+                            "  tax_rate, "
+                            "  value_without_tax, "
+                            "  value_with_tax "
+                            "from order_lineitem")) {
+
+    order_lineitems.push_back({
+        // clang-format off
+        .id                     = r.get<int>(0),
+        .order_id               = r.get<int>(1),
+        .description            = r.get(2),
+        .tax_rate               = r.get<double>(3),
+        .value_without_tax      = r.get<double>(4),
+        .value_with_tax         = r.get<double>(5)
+        // clang-format on
+    });
+  }
+  return order_lineitems;
+}
+
+void avg_orders() {
+  std::vector<order_lineitem> order_lineitems;
+
+  std::vector<int> order_ids;
+  long double      grand_total{};
+  for (auto&& r: db().query("select "
+                            "  order_id, "
+                            "  value_with_tax "
+                            "from order_lineitem")) {
+
+    order_ids.push_back(r.get<int>(0));
+    grand_total += r.get<double>(1);
+  }
+  std::sort(order_ids.begin(), order_ids.end());
+  auto size = std::unique(order_ids.begin(), order_ids.end()) - order_ids.begin();
+
+  std::cerr << fmt::format("orders {:22Ld}\n"
+                           "total   {:22.6Lf}\n"
+                           "average {:22.2Lf}\n",
+                           order_ids.size(), grand_total, grand_total / size);
+}
+
 void report_topn(std::size_t N, const std::unordered_map<std::string, std::size_t>& map) {
   using MapType  = std::remove_cvref_t<decltype(map)>;
   using PairType = std::pair<MapType::key_type, MapType::mapped_type>;
@@ -171,27 +238,26 @@ void report_stats(std::size_t N, const std::vector<member>& members) {
 }
 
 int main(int argc, char* argv[]) {
-  std::vector<std::string> args(argv, argv + argc);
-
   std::ios::sync_with_stdio(false);
+  std::locale::global(std::locale(""));
 
   try {
-    conf::init(std::filesystem::path(args[0]).parent_path().append("myslice_demo.ini"));
+    conf::init(std::filesystem::path(argv[0]).parent_path().append("myslice_demo.ini"));
 
     auto limit = argc > 1 ? std::stoi(argv[1]) : 10'000;
     auto N     = argc > 2 ? std::stoull(argv[2]) : 10;
 
     std::vector<member> members;
     {
-      os::bch::Timer t("load");
+      os::bch::Timer t("load members");
       members = load_members(limit);
     }
     {
-      os::bch::Timer t("stats");
+      os::bch::Timer t("stats on members");
       report_stats(N, members);
     }
     {
-      os::bch::Timer t("dump");
+      os::bch::Timer t("dump members");
       for (auto&& m: members) std::cout << m << "\n";
     }
 
@@ -200,6 +266,19 @@ int main(int argc, char* argv[]) {
       os::bch::Timer t("load/dump tax_rates");
       tax_rates = load_tax_rates();
       for (auto&& m: tax_rates) std::cout << m << "\n";
+    }
+    {
+      os::bch::Timer t("fast avg olis");
+      avg_orders();
+    }
+    std::vector<order_lineitem> olis;
+    {
+      os::bch::Timer t("load order_lineitems");
+      olis = load_order_lineitems();
+    }
+    {
+      os::bch::Timer t("dump olis");
+      for (auto&& oli: olis) std::cout << oli << "\n";
     }
   } catch (const std::exception& e) {
     std::cerr << "Something went wrong. Exception thrown: " << e.what() << std::endl;
