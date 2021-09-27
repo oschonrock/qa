@@ -16,8 +16,7 @@ void gen1(benchmark::State& state) {
 
   for (auto _: state) {
     std::vector<std::size_t> uniqverts;
-    uniqverts.reserve(rvs.size());
-    for (auto&& e: rvs) uniqverts.push_back(e);
+    std::copy(rvs.begin(), rvs.end(), uniqverts.begin());
     std::sort(begin(uniqverts), end(uniqverts));
     uniqverts.erase(std::unique(begin(uniqverts), end(uniqverts)), uniqverts.end());
     std::size_t size = uniqverts.size();

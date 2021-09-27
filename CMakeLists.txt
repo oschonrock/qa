@@ -1,14 +1,11 @@
 cmake_minimum_required(VERSION 3.15)
 project(qa)
 
-# set path to custom cmake modules
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake-scripts/cmake")
-
-# include common tools and workarounds
 include(scripts)
-
-# use Conan configuration if available
 conan_init(cmake)
+
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 string(APPEND CMAKE_EXE_LINKER_FLAGS " -fuse-ld=lld")
 string(APPEND CMAKE_SHARED_LINKER_FLAGS " -fuse-ld=lld")
@@ -17,6 +14,16 @@ string(APPEND CMAKE_MODULE_LINKER_FLAGS " -fuse-ld=lld")
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+
+# finding this is not very c++20 compat
+# find_program(CPPCHECK cppcheck)
+# if(CPPCHECK)
+#   set(CMAKE_CXX_CPPCHECK
+#     ${CPPCHECK}
+#     --suppress=missingInclude
+#     --enable=all
+#     --inline-suppr)
+# endif()
 
 string(APPEND CMAKE_CXX_FLAGS_DEBUG          " -fsanitize=address,undefined,leak")
 string(APPEND CMAKE_CXX_FLAGS_RELWITHDEBINFO " -fsanitize=address,undefined,leak")

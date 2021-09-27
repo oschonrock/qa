@@ -36,7 +36,7 @@ int main() {
   constexpr std::size_t    N = 10;
   std::vector<map_entry_t> topN(std::min(N, map.size()));
   std::partial_sort_copy(begin(map), end(map), begin(topN), end(topN),
-                         [](auto& a, auto& b) { return a.second > b.second; });
+                         [](const auto& a, const auto& b) { return a.second > b.second; });
 
   std::size_t wc = std::accumulate(begin(map), end(map), 0UL,
                                    [](std::size_t tot, const auto& p) { return tot + p.second; });

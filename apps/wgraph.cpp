@@ -6,6 +6,7 @@
 #include <iostream>
 #include <numeric>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 constexpr std::size_t window_ahead  = 3;
@@ -74,7 +75,7 @@ int main() { // NOLINT cognitive complexity
   constexpr std::size_t    N = 10;
   std::vector<map_entry_t> topN(N);
   std::partial_sort_copy(begin(map), end(map), begin(topN), end(topN),
-                         [](auto& a, auto& b) { return a.second > b.second; });
+                         [](const auto& a, const auto& b) { return a.second > b.second; });
 
   std::size_t wc = std::accumulate(begin(map), end(map), 0UL,
                                    [](std::size_t tot, const auto& p) { return tot + p.second; });

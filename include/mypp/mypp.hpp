@@ -39,17 +39,16 @@ public:
   std::size_t*             lengths() {
     // is a direct return if we used mysql_use_result
     // so no point caching it
-    return ::mysql_fetch_lengths(myr); 
+    return ::mysql_fetch_lengths(myr);
   }
 
   struct Iterator;
   Iterator begin();
   Iterator end();
 
-
 private:
-  mysql* mysql;
-  MYSQL_RES*   myr;
+  mysql*     mysql;
+  MYSQL_RES* myr;
 };
 
 namespace impl {
