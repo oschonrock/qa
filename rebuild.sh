@@ -33,9 +33,9 @@ rm -rf build &&                                                \
     cd .. &&                                                   \
     cmake -DCMAKE_CXX_COMPILER="$CXX"                          \
           -DCMAKE_C_COMPILER="$CC"                             \
-          -DCMAKE_EXPORT_COMPILE_COMMANDS=1                    \
-	  -DCMAKE_BUILD_TYPE=RelWithDebInfo                \
-          -B build -S .  &&                                    \
-    cmake --build build -- -j8
+    	  -DCMAKE_BUILD_TYPE=Release                           \
+          -B build -S .
+    # do this from within emacs / IDE
+    # cmake -DCMAKE_BUILD_TYPE=XXX --build build -- -j8
 
 cd "$pwd"
