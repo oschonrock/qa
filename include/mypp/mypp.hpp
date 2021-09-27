@@ -4,6 +4,7 @@
 #include "fmt/core.h"
 #include "mysql.h"
 #include "os/str.hpp"
+#include "os/tmp.hpp"
 #include <cstddef>
 #include <cstring>
 #include <sstream>
@@ -32,38 +33,26 @@ public:
 
   ~result() { ::mysql_free_result(myr); }
 
+  row                      fetch_row();
   unsigned                 num_fields() { return ::mysql_num_fields(myr); }
   std::vector<std::string> fieldnames();
-  row                      fetch_row();
+  std::size_t*             lengths() {
+    // is a direct return if we used mysql_use_result
+    // so no point caching it
+    return ::mysql_fetch_lengths(myr); 
+  }
 
   struct Iterator;
   Iterator begin();
   Iterator end();
 
-  mysql* mysql;
 
 private:
-  MYSQL_RES* myr = nullptr;
+  mysql* mysql;
+  MYSQL_RES*   myr;
 };
 
 namespace impl {
-
-template <typename... Args>
-void whatis();
-
-template <typename C, typename = void>
-struct has_push_back : std::false_type {};
-
-template <typename C>
-struct has_push_back<
-    C, std::void_t<decltype(std::declval<C>().push_back(std::declval<typename C::value_type>()))>>
-    : std::true_type {};
-
-template <typename T, typename = void>
-struct is_optional : std::false_type {};
-
-template <typename T>
-struct is_optional<T, std::void_t<decltype(std::declval<T>().value())>> : std::true_type {};
 
 // adapted from fmt::detail
 template <typename ReturnType>
@@ -92,7 +81,7 @@ constexpr ReturnType parse_nonnegative_int(const char* begin, const char* end,
 
 // high peformance mysql date format parsing
 template <typename TimePointType>
-TimePointType parse_date_time(const char* s) {
+TimePointType parse_date_time(const char* s, std::size_t len) {
   static_assert(std::is_same_v<TimePointType, date::sys_days> ||
                     std::is_same_v<TimePointType, date::sys_seconds>,
                 "don't know how to parse this timepoint");
@@ -103,7 +92,6 @@ TimePointType parse_date_time(const char* s) {
   // fmt   YYYY-MM-DD HH:MM:SS  (time part only applies to date::sys_seconds)
   //       0123456789012345678
 
-  std::size_t len = strlen(s);
   if (len < 10) throw std::domain_error("not long enough to parse a date `" + std::string(s) + "`");
 
   date::year_month_day ymd = {year(parse_nonnegative_int(&s[0], &s[4], -1)),
@@ -133,8 +121,8 @@ TimePointType parse_date_time(const char* s) {
 
 // mysql/mariadb specific parsing
 template <typename NumericType>
-inline NumericType parse(const char* str) {
-  if constexpr (is_optional<NumericType>::value) {
+inline NumericType parse(const char* str, std::size_t len) {
+  if constexpr (os::tmp::is_optional<NumericType>::value) {
     if (str == nullptr) return std::nullopt;
 
     using InnerType = std::remove_reference_t<decltype(std::declval<NumericType>().value())>;
@@ -146,21 +134,21 @@ inline NumericType parse(const char* str) {
       if (std::strcmp(str, "0000-00-00") == 0) return std::nullopt;
     }
 
-    return parse<InnerType>(str); // unwrap and recurse
+    return parse<InnerType>(str, len); // unwrap and recurse
   } else {
     if (str == nullptr)
       throw std::domain_error("requested type was not std::optional, but db returned NULL");
 
     if constexpr (std::is_same_v<NumericType, bool>) {
-      return parse<long>(str) != 0; // db uses int{0} and int{1} for bool
+      return os::str::parse<long>(str) != 0; // db uses int{0} and int{1} for bool
 
     } else if constexpr (std::is_same_v<NumericType, date::sys_days> ||
                          std::is_same_v<NumericType, date::sys_seconds>) {
 
-      return impl::parse_date_time<NumericType>(str);
+      return parse_date_time<NumericType>(str, len);
     } else {
       // delegate to general numeric formats
-      return os::str::parse<NumericType>(str);
+      return os::str::parse<NumericType>(str, len);
     }
   }
 }
@@ -187,10 +175,12 @@ public:
     return row_[idx];
   }
 
+  [[nodiscard]] std::size_t len(unsigned idx) const { return rs->lengths()[idx]; }
+
   template <typename ValueType = std::string>
   [[nodiscard]] ValueType get(unsigned idx) const {
     // try numeric parsing by default
-    return impl::parse<ValueType>((*this)[idx]);
+    return impl::parse<ValueType>((*this)[idx], len(idx));
   }
 
   // takes a copy in a std::string
@@ -287,7 +277,7 @@ public:
     static_assert(!std::is_same_v<ValueType, const char*>,
                   "single_column<Container<const char*>> will result in dangling pointers");
     for (auto&& row: rs) {
-      if constexpr (impl::has_push_back<ContainerType>::value)
+      if constexpr (os::tmp::has_push_back<ContainerType>::value)
         values.push_back(row.get<ValueType>(col));
       else
         values.insert(row.get<ValueType>(col));
