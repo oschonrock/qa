@@ -1,6 +1,7 @@
 #include "os/bch.hpp"
 #include <SFML/Graphics.hpp>
 #include <algorithm>
+#include <compare>
 #include <complex>
 #include <cstdint>
 #include <execution>
@@ -17,8 +18,7 @@ using ComplexType = double;
 struct Size {
   PointType      width;
   PointType      height;
-  constexpr bool operator==(const Size& o) const { return width == o.width && height == o.height; }
-  constexpr bool operator!=(const Size& o) const { return !(*this == o); }
+  constexpr bool operator==(const Size& o) const = default;
 };
 
 struct Point {
@@ -44,11 +44,7 @@ struct Settings {
 
   explicit Settings(bool first_run_ = false) : first_run(first_run_) {}
 
-  constexpr bool operator==(const Settings& o) const {
-    return size == o.size && center == o.center && x_scale == o.x_scale && y_scale == o.y_scale &&
-           first_run == o.first_run;
-  }
-  constexpr bool operator!=(const Settings& o) const { return !(*this == o); }
+  constexpr bool operator==(const Settings& o) const = default;
 
   [[nodiscard]] ComplexType get_x_min() const { return center.real() - x_scale / 2.0; }
   [[nodiscard]] ComplexType get_x_max() const { return center.real() + x_scale / 2.0; }
@@ -175,8 +171,7 @@ void render(const Settings& s, sf::Image& img) {
   if (last_settings != s) max_iter = Settings::max_iter_start; // start with a fast render
 
   if (max_iter <= Settings::max_iter_max) {
-    using namespace std::string_literals;
-    os::bch::Timer t1("max_iter = "s + std::to_string(max_iter) + ": "s);
+    os::bch::Timer t1("max_iter = " + std::to_string(max_iter) + ": ");
     std::for_each(std::execution::par_unseq, begin(grid), end(grid),
                   [&img, &s](auto& p) { img.setPixel(p.x, p.y, compute_pixel(p, s, max_iter)); });
     max_iter += Settings::max_iter_inc; // progressively refine
