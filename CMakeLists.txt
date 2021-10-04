@@ -122,3 +122,9 @@ add_custom_command(
 add_executable(wc apps/wc.cpp)
 target_link_libraries(wc PRIVATE toolbelt mypp conf fmt date)
 
+add_library(sha1 INTERFACE)
+target_include_directories(sha1 INTERFACE include/sha1)
+
+add_executable(hibp apps/hibp.cpp)
+target_link_libraries(hibp PRIVATE toolbelt fmt sha1)
+
