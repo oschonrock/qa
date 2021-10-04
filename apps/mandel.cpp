@@ -28,9 +28,6 @@ struct Point {
 
 struct Settings {
   Size size{640U, 640U};
-  // std::complex<ComplexType> center{-0.546875298168001337L, -0.621118118440520923L};
-  // ComplexType               x_scale = 3.31055062663404068e-17;
-  // ComplexType               y_scale = 3.31055062663404068e-17;
   std::complex<ComplexType> center{-0.5, 0.0};
   ComplexType               x_scale   = 2.5; // complex size from left to right
   ComplexType               y_scale   = 2.5;
@@ -219,7 +216,6 @@ int main() {
   sf::Texture texture;
   texture.loadFromImage(img);
   sf::Sprite sprite(texture);
-  sf::Clock  clock;
 
   while (window.isOpen()) {
     sf::Event event{};

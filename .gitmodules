@@ -34,3 +34,6 @@
 [submodule "include/fast_float"]
 	path = include/fast_float
 	url = https://github.com/fastfloat/fast_float.git
+[submodule "include/sha1"]
+	path = include/sha1
+	url = https://github.com/vog/sha1.git
