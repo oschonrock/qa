@@ -31,7 +31,7 @@ string(APPEND CMAKE_CXX_FLAGS_RELWITHDEBINFO " -fsanitize=address,undefined,leak
 if (MSVC)
   add_compile_options(/W4)
 else()
-  add_compile_options(-Wall -Wextra -Wpedantic -Wconversion -Wshadow -Wextra-semi -Wshadow-field-in-constructor -Wmissing-noreturn -Wunreachable-code-break)
+  add_compile_options(-Wall -Wextra -Wpedantic -Wconversion -Wshadow -Wextra-semi -Wmissing-noreturn)
 endif()
 
 # if we want shared libs for some reason
