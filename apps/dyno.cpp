@@ -2,6 +2,7 @@
 
 #include "dyno.hpp"
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <iostream>
 #include <vector>

@@ -2,6 +2,7 @@
 #define _USE_MATH_DEFINES
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <iomanip>
 #include <iostream>
