@@ -2,11 +2,11 @@
 
 #include "date/date.h"
 #include "fmt/core.h"
-#include "mysql.h"
 #include "os/str.hpp"
 #include "os/tmp.hpp"
 #include <cstddef>
 #include <cstring>
+#include <mysql.h>
 #include <sstream>
 #include <stdexcept>
 #include <string>

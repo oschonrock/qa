@@ -4,7 +4,6 @@
 #include <cstdint>
 #include <iostream>
 #include <list>
-#include <mysql.h>
 #include <optional>
 #include <ostream>
 #include <stdexcept>

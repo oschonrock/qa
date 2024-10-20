@@ -1,5 +1,4 @@
 #include "mypp.hpp"
-#include "mysql.h"
 #include <stdexcept>
 #include <type_traits>
 
